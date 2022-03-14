@@ -7,12 +7,10 @@ This repository is maintained by Itay Avraham (itayavr@nvidia.com), please send 
 
 ## How to compile and load the driver.
 Build the driver by using the make command and load the driver using the insmod command:<br/>
-MSTFlint:<br/>
-`make`<br/>
-`insmod mst_driver.ko`<br/>
-MFT:<br/>
-`make`<br/>
-`insmod mst_driver.ko mft_package=1`<br/>
+| Package                         | Commands                                              |
+| --------------------------------| :---------------------------------------------------: |
+| MSTFlint                        | `make`<br/> `insmod mst_driver.ko`<br/>               |
+| MFT                             | `make`<br/> `insmod mst_driver.ko mft_package=1`<br/> |
 
 ## How to access from user space<br/>
 IOCTL system call will be the communication channel between the user space and kernel Space.<br/>
