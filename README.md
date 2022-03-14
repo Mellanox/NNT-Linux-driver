@@ -30,3 +30,10 @@ Here are short explanation regarding the IOCTLS codes:<br/>
 | `MST_RELEASE_DMA_PAGES`            | Unpin the user space memroy                              |
 | `MST_READ_DWORD_FROM_CONFIG_SPACE` | Read a dword from the PCI configuation space             |
 | `MST_PCI_CONNECTX_WA`              | ConnectX ordering workaround                             |
+
+
+## FAQ: Here are some questions that I sometimes get that might help.
+- Q: What is the major number of the driver?<br/>
+  - A: The major number allocated dynamically, no fixed number.<br/>
+- Q: What is the MFT & MSTFlint package version that supports this driver?
+  - A:  X > 4.20.
