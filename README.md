@@ -34,4 +34,4 @@ Here are short explanation regarding the IOCTLS codes:<br/>
 - Q: What is the major number of the driver?<br/>
   - A: The major number allocated dynamically, no fixed number.<br/>
 - Q: What is the MFT & MSTFlint package version that supports this driver?
-  - A:  X > 4.20.
+  - A:  X >= 4.20.
