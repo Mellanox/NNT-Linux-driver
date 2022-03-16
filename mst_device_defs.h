@@ -37,8 +37,7 @@ struct dma_page {
 enum mst_device_type {
     MST_PCICONF,
     MST_PCICONF_NO_FULL_VSEC,
-    MST_PCI_MEMORY,
-    MST_LIVEFISH
+    MST_PCI_MEMORY
 };
 
 
