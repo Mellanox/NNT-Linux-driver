@@ -264,7 +264,7 @@ int read_pciconf(struct mst_device* mst_device, struct rw_operation* read_operat
                      &read_operation->data[counter >> 2])) {
                     error = counter;
                     goto ReturnOnFinished;
-		}
+		    }
 	}
 
 ReturnOnFinished:
@@ -319,7 +319,7 @@ int write_pciconf(struct mst_device* mst_device, struct rw_operation* write_oper
                       write_operation->data[counter >> 2])) {
                     error = counter;
                     goto ReturnOnFinished;
-		}
+		    }
 	}
 
 ReturnOnFinished:

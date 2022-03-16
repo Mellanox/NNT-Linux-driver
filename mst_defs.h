@@ -13,7 +13,7 @@ extern struct driver_info mst_driver_info;
 #define MST_DRIVER_NAME             "mst_driver"
 #define MST_CLASS_NAME              "mst_class"
 #define MST_DEVICE_PREFIX           "mt"
-#define MST_DRIVER                  "MST Driver::  "
+#define MST_DRIVER                  "MST Driver::"
 
 #define CHECK_PCI_READ_ERROR(error, address) \
         if (error) { \

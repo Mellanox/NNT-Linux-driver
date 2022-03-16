@@ -52,20 +52,20 @@ static struct pci_device_id bar_pci_devices[] = {
 };
 
 
-int is_wo_gw(struct pci_dev* pci_device, unsigned int register_address)
+int is_wo_gw(struct mst_device* mst_device)
 {
 	unsigned int data = 0;
     int error;
 
-    error = pci_write_config_dword(pci_device, register_address,
+    error = pci_write_config_dword(mst_device->pci_device, mst_device->pciconf_device.address_register,
                                    MST_DEVICE_ID_OFFSET);
-    CHECK_PCI_WRITE_ERROR(error, register_address,
+    CHECK_PCI_WRITE_ERROR(error, mst_device->pciconf_device.address_register,
                           MST_DEVICE_ID_OFFSET);
 
 	/* Read the result from data register */
-    error = pci_read_config_dword(pci_device, register_address,
+    error = pci_read_config_dword(mst_device->pci_device, mst_device->pciconf_device.address_register,
                                   &data);
-    CHECK_PCI_READ_ERROR(error, register_address);
+    CHECK_PCI_READ_ERROR(error, mst_device->pciconf_device.address_register);
 
 	if (data == MST_WO_REG_ADDR_DATA) {
 		    error = 1;
@@ -241,13 +241,14 @@ int create_devices(int contiguous_device_numbers, dev_t device_number,
                     pci_find_capability(current_mst_device->pci_device, VSEC_CAPABILITY_ADDRESS);
             current_mst_device->vpd_capability_address = pci_find_capability(current_mst_device->pci_device, PCI_CAP_ID_VPD);
 
+            if (!current_mst_device->pciconf_device.vendor_specific_capability) {
+                    current_mst_device->device_type = MST_PCICONF_NO_FULL_VSEC;
+            }
             switch (current_mst_device->device_type) {
                     case MST_PCICONF:
                             current_mst_device->access.read = read_pciconf;
                             current_mst_device->access.write = write_pciconf;
                             current_mst_device->access.init = init_pciconf;
-                            current_mst_device->pciconf_device.address_register = MST_CONF_ADDRES_REGISETER;
-                            current_mst_device->pciconf_device.data_register = MST_CONF_DATA_REGISTER;
                             current_mst_device->pciconf_device.semaphore_offset =
                                     current_mst_device->pciconf_device.vendor_specific_capability + PCI_SEMAPHORE_OFFSET;
                             current_mst_device->pciconf_device.data_offset =
@@ -260,6 +261,9 @@ int create_devices(int contiguous_device_numbers, dev_t device_number,
                             current_mst_device->access.read = read_pciconf_no_full_vsec;
                             current_mst_device->access.write = write_pciconf_no_full_vsec;
                             current_mst_device->access.init = init_pciconf_no_full_vsec;
+                            current_mst_device->pciconf_device.address_register = MST_CONF_ADDRES_REGISETER;
+                            current_mst_device->pciconf_device.data_register = MST_CONF_DATA_REGISTER;
+                            current_mst_device->wo_address = is_wo_gw(current_mst_device);
                             break;
 
                     case MST_PCI_MEMORY:
@@ -276,11 +280,6 @@ int create_devices(int contiguous_device_numbers, dev_t device_number,
                                     mst_error("could not map device memory\n");
                             }
 
-                            break;
-
-                    case MST_LIVEFISH:
-                            //current_mst_device->access.read = read_livefish;
-                            //current_mst_device->access.write = write_livefish;
                             break;
             }
 
