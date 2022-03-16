@@ -237,7 +237,8 @@ int create_devices(int contiguous_device_numbers, dev_t device_number,
             }
 
             current_mst_device->pciconf_device.vendor_specific_capability =
-                    pci_find_capability(current_mst_device->pci_device, ADDRESS_SPACE_VENDOR_SPECIFIC_CAPABILITY);
+                    pci_find_capability(current_mst_device->pci_device, VSEC_CAPABILITY_ADDRESS);
+            current_mst_device->vpd_capability_address = pci_find_capability(current_mst_device->pci_device, PCI_CAP_ID_VPD);
 
             switch (current_mst_device->device_type) {
                     case MST_PCICONF:
