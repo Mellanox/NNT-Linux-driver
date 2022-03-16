@@ -1,6 +1,5 @@
 # MST-Linux-driver
 This repository is the kernel space part of MFT & MSTFlint packages aimed to provide a stable and well defined interface for NVIDIA® networking devices that are accessed via PCI Memory Mapping or by PCI configuration cycles.<br/>
-Note that PCI configuration access is slower and less safe than memory access.<br/>
 
 The purpose of this driver is to provide a lightweight API for firmware management and debug tools for NVIDIA® networking devices:
 - Generating a standard or customized NVIDIA® firmware image.
@@ -54,3 +53,5 @@ Here is a short explanation regarding the IOCTLS codes:<br/>
 ## FAQ: Here are some questions that I sometimes get that might help.
 - Q: What is the major number of the driver?<br/>
   - A: The major number allocated dynamically, no fixed number.<br/>
+- Q: Which communication channel is preferred?<br>
+  - A: PCI configuration access is slower and less safe than memory access.<br/>
