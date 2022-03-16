@@ -1,12 +1,12 @@
 # MST-Linux-driver
 This repository contains the new unified driver which will replace the old drivers of MFT and MSTFlint packages.<br/>
-The Mellanox devices are accessed via PCI Memory Mapping or by PCI configuration cycles.<br/>
+The NVIDIA® devices are accessed via PCI Memory Mapping or by PCI configuration cycles.<br/>
 Note that PCI configuration access is slower and less safe than memory access.<br/>
 
 The purpose of this driver is to provide a lightweight API for firmware management and debug tools for NVIDIA® devices:
 - Generating a standard or customized NVIDIA® firmware image.
 - Querying for firmware information.
-- Burning a firmware image to a single Mellanox device via DMA access.
+- Burning a firmware image to a single NVIDIA® device via DMA access.
 - Fast access to read & write registers of the NVIDIA® devices.
 
 This repository is maintained by Itay Avraham (itayavr@nvidia.com), please send any comments, suggestions, or questions to me.
@@ -41,7 +41,7 @@ Here is a short explanation regarding the IOCTLS codes:<br/>
 | ---------------------------------- | :-----------------------------------------------------|
 | `MST_INIT`                         | Used to change bar number and map the new bar on the fly |
 | `MST_STOP`                         | Used to change configuration registers on the fly        |
-| `MST_GET_DEVICE_PARAMETERS`        | Get information about the Mellanox device                |
+| `MST_GET_DEVICE_PARAMETERS`        | Get information about the NVIDIA® device                 |
 | `MST_WRITE`                        | Write a block of data to PCI memory or configuration space,<br/> Size is expressed as number of unsigned integers  |
 | `MST_READ`                         | Read a block of data from PCI memory or configuration space,<br/> Size is expressed as number of unsigned integers |
 | `MST_VPD_READ`                     | Reads PCI device VPD                                     |
