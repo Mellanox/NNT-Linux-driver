@@ -59,12 +59,13 @@ int is_wo_gw(struct pci_dev* pci_device, unsigned int register_address)
 
     error = pci_write_config_dword(pci_device, register_address,
                                    MST_DEVICE_ID_OFFSET);
-    CHECK_ERROR(error);
+    CHECK_PCI_WRITE_ERROR(error, register_address,
+                          MST_DEVICE_ID_OFFSET);
 
 	/* Read the result from data register */
     error = pci_read_config_dword(pci_device, register_address,
                                   &data);
-    CHECK_ERROR(error);
+    CHECK_PCI_READ_ERROR(error, register_address);
 
 	if (data == MST_WO_REG_ADDR_DATA) {
 		    error = 1;

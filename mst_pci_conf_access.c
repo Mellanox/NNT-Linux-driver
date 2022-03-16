@@ -11,10 +11,10 @@ int clear_vsec_semaphore(struct mst_device* mst_device)
     /* Clear the semaphore. */
     int error = pci_write_config_dword(mst_device->pci_device, mst_device->pciconf_device.semaphore_offset,
                                       0);
-    if (error) {
-            mst_error("Failed to clear the semaphore\n");
-    }
+    CHECK_PCI_WRITE_ERROR(error, mst_device->pciconf_device.semaphore_offset,
+                          0)
 
+ReturnOnFinished:
     return error;
 }
 
@@ -28,18 +28,19 @@ int get_semaphore_ticket(struct mst_device* mst_device, unsigned int* lock_value
     /* Read ticket. */
     error = pci_read_config_dword(mst_device->pci_device, counter_offset,
                                   counter);
-    CHECK_ERROR(error);
+    CHECK_PCI_READ_ERROR(error, counter_offset);
 
     /* Write to semaphore ticket. */
     error = pci_write_config_dword(mst_device->pci_device, mst_device->pciconf_device.semaphore_offset,
                                    *counter);
-    CHECK_ERROR(error);
+    CHECK_PCI_WRITE_ERROR(error, mst_device->pciconf_device.semaphore_offset,
+                          *counter);
 
     /* Read back semaphore to make sure the
      *   ticket is equal to semphore */
     error = pci_read_config_dword(mst_device->pci_device, mst_device->pciconf_device.semaphore_offset,
                                   lock_value);
-    CHECK_ERROR(error);
+    CHECK_PCI_READ_ERROR(error, mst_device->pciconf_device.semaphore_offset);
 
 ReturnOnFinished:
     return error;
@@ -63,7 +64,7 @@ int lock_vsec_semaphore(struct mst_device* mst_device)
             /* Read the semaphore, until we will get 0. */
             error = pci_read_config_dword(mst_device->pci_device, mst_device->pciconf_device.semaphore_offset,
                                           &lock_value);
-            CHECK_ERROR(error);
+            CHECK_PCI_READ_ERROR(error, mst_device->pciconf_device.semaphore_offset);
 
             /* Is semaphore taken ? */
             if (lock_value) {
@@ -96,7 +97,7 @@ int read_dword(struct read_dword_from_config_space* read_from_cspace, struct mst
     /* Read dword from config space. */
     error = pci_read_config_dword(mst_device->pci_device, read_from_cspace->offset,
                                   &read_from_cspace->data);
-    CHECK_ERROR(error);
+    CHECK_PCI_READ_ERROR(error, read_from_cspace->offset);
 
 ReturnOnFinished:
     /* Clear semaphore. */
@@ -115,7 +116,7 @@ int wait_on_flag(struct mst_device* mst_device, u8 expected_val)
             /* Read the flag. */
             error = pci_read_config_dword(mst_device->pci_device, mst_device->pciconf_device.address_offset,
                                           &flag);
-            CHECK_ERROR(error);
+            CHECK_PCI_READ_ERROR(error, mst_device->pciconf_device.address_offset);
 
             flag = EXTRACT(flag, PCI_FLAG_BIT_OFFSET,
                            1);
@@ -138,19 +139,20 @@ int set_address_space(struct mst_device* mst_device, unsigned int space)
     /* Read value from control offset. */
     error = pci_read_config_dword(mst_device->pci_device, control_offset,
                                   &value);
-    CHECK_ERROR(error);
+    CHECK_PCI_READ_ERROR(error, control_offset);
     
     /* Set the bit space indication and write it back. */
     value = MERGE(value, space,
                   PCI_SPACE_BIT_OFFSET, PCI_SPACE_BIT_LENGTH);
     error = pci_write_config_dword(mst_device->pci_device, control_offset,
                                    value);
-    CHECK_ERROR(error);
+    CHECK_PCI_WRITE_ERROR(error, control_offset,
+                          value);
     
     /* Read status and make sure space is supported. */
     error = pci_read_config_dword(mst_device->pci_device, control_offset,
                                   &value);
-    CHECK_ERROR(error);
+    CHECK_PCI_READ_ERROR(error, control_offset);
 
     if (EXTRACT(value, PCI_STATUS_BIT_OFFSET,
                     PCI_STATUS_BIT_LEN) == 0) {
@@ -227,7 +229,8 @@ int read(struct mst_device* mst_device, unsigned int offset,
     /* Write address. */
     error = pci_write_config_dword(mst_device->pci_device, mst_device->pciconf_device.address_offset,
                                    offset);
-    CHECK_ERROR(error);
+    CHECK_PCI_WRITE_ERROR(error, mst_device->pciconf_device.address_offset,
+                          offset);
 
     error = wait_on_flag(mst_device, 1);
     CHECK_ERROR(error);
@@ -235,6 +238,7 @@ int read(struct mst_device* mst_device, unsigned int offset,
     /* Read data. */
     error = pci_read_config_dword(mst_device->pci_device, mst_device->pciconf_device.data_offset,
                                   data);
+    CHECK_PCI_READ_ERROR(error, mst_device->pciconf_device.data_offset);
 
 ReturnOnFinished:
     return error;
@@ -281,12 +285,14 @@ int write(struct mst_device* mst_device, unsigned int offset,
     /* Write data. */
     error = pci_write_config_dword(mst_device->pci_device, mst_device->pciconf_device.data_offset,
                                    data);
-    CHECK_ERROR(error);
+    CHECK_PCI_WRITE_ERROR(error,mst_device->pciconf_device.data_offset,
+                          data);
 
     /* Write address. */
     error = pci_write_config_dword(mst_device->pci_device, mst_device->pciconf_device.address_offset,
                                    offset);
-    CHECK_ERROR(error);
+    CHECK_PCI_WRITE_ERROR(error, mst_device->pciconf_device.address_offset,
+                          offset);
 
     error = wait_on_flag(mst_device, 0);
 
