@@ -2,7 +2,13 @@
 This repository contains the new unified driver which will replace the old drivers of MFT and MSTFlint packages.<br/>
 The Mellanox devices are accessed via PCI Memory Mapping or by PCI configuration cycles.<br/>
 Note that PCI configuration access is slower and less safe than memory access.<br/>
-<br/>
+
+The purpose of this driver is to provide a lightweight API for firmware management and debug tools for NVIDIA® devices:
+- Generating a standard or customized NVIDIA® firmware image.
+- Querying for firmware information.
+- Burning a firmware image to a single Mellanox device via DMA access.
+- Fast access to read & write registers of the NVIDIA® devices.
+
 This repository is maintained by Itay Avraham (itayavr@nvidia.com), please send any comments, suggestions, or questions to me.
 
 ## How to compile and load the driver.
