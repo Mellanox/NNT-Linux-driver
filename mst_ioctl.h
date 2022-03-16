@@ -11,4 +11,8 @@ int get_mst_device_parameters(unsigned int command, void* user_buffer,
                               struct mst_device* mst_device);
 int pci_connectx_wa(unsigned int command, void* user_buffer,
                     struct mst_device* mst_device);
+int vpd_read(unsigned int command, struct mst_vpd* vpd,
+             struct mst_device* mst_device);
+int vpd_write(unsigned int command, struct mst_vpd* vpd,
+              struct mst_device* mst_device);
 #endif

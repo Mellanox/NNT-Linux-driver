@@ -1,13 +1,10 @@
 #ifndef MST_IOCTL_DEFS_H
 #define MST_IOCTL_DEFS_H
 
-#define MST_MAGIC_NUMBER                            0xD3
-#define MAX_BUFFER_BLOCK_SIZE                       256
-#define ADDRESS_SPACE_VENDOR_SPECIFIC_CAPABILITY    0x9
-#define ADDRESS_SPACE_ICMD                          0x3
-#define ADDRESS_SPACE_CR_SPACE                      0x2
-#define ADDRESS_SPACE_SEMAPHORE                     0xa
-
+#define MST_MAGIC_NUMBER                    0xD3
+#define MAX_BUFFER_BLOCK_SIZE               256
+#define MST_MAX_PAGES_SIZE                  32
+#define MST_CONNECTX_WA_SIZE                3
 
 #define MST_WRITE                           _IOW (MST_MAGIC_NUMBER, 1, struct rw_operation)
 #define MST_READ                            _IOW (MST_MAGIC_NUMBER, 2, struct rw_operation)
@@ -17,10 +14,17 @@
 #define MST_GET_DEVICE_PARAMETERS           _IOR (MST_MAGIC_NUMBER, 6, struct device_parameters)
 #define MST_INIT                            _IOR (MST_MAGIC_NUMBER, 7, struct pciconf_init)
 #define MST_PCI_CONNECTX_WA                 _IOR (MST_MAGIC_NUMBER, 8, u_int32_t)
+#define MST_VPD_READ                        _IOR (MST_MAGIC_NUMBER, 9, struct mst_vpd)
+#define MST_VPD_WRITE                       _IOW (MST_MAGIC_NUMBER, 10, struct mst_vpd)
 
 
-#define MST_MAX_PAGES_SIZE                  32
-#define MST_CONNECTX_WA_SIZE                3
+
+struct mst_vpd {
+	unsigned int offset;
+	unsigned int timeout;
+	unsigned int data;
+};
+
 
 struct pciconf_init {
 	unsigned int address_register;

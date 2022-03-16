@@ -17,16 +17,12 @@
 #define PCI_ADDRESS_OFFSET          0x10
 #define PCI_DATA_OFFSET             0x14
 #define MST_MEMORY_SIZE				1024 * 1024
+#define VSEC_CAPABILITY_ADDRESS     0x9
 
 #define MSTFLINT_PCICONF_DEVICE_NAME    "mstconf"
 #define MSTFLINT_MEMORY_DEVICE_NAME     "mstcr"
 #define MFT_PCICONF_DEVICE_NAME         "pciconf"    
 #define MFT_MEMORY_DEVICE_NAME          "pci_cr"
-
-#define CHECK_ERROR(error) \
-    if (error) { \
-            goto ReturnOnFinished; \
-    }
 
 static struct pci_device_id pci_conf_devices[];
 static struct pci_device_id livefish_pci_devices[];
@@ -94,9 +90,10 @@ struct mst_device {
     struct cdev mcdev;
     struct mutex lock;
     enum mst_device_type device_type;
+    int vpd_capability_address;
+    int wo_address;
     char device_name[MST_NAME_SIZE];
     dev_t device_number;
-    int wo_address;
 };
 
 

@@ -340,7 +340,7 @@ int init_pciconf(unsigned int command, void* user_buffer,
     mst_device->pciconf_device.address_register = init.address_register;
     mst_device->pciconf_device.address_register = init.address_data_register;
     mst_device->pciconf_device.vendor_specific_capability =
-            pci_find_capability(mst_device->pci_device, ADDRESS_SPACE_VENDOR_SPECIFIC_CAPABILITY);
+            pci_find_capability(mst_device->pci_device, VSEC_CAPABILITY_ADDRESS);
 
     mst_device->pciconf_device.semaphore_offset =
         mst_device->pciconf_device.vendor_specific_capability + ADDRESS_SPACE_SEMAPHORE;

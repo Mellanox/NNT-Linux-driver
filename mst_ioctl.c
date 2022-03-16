@@ -1,10 +1,15 @@
 #include <linux/kernel.h>
 #include <linux/pci.h>
 #include <linux/uaccess.h>
+#include <linux/highmem.h>
+#include <linux/sched.h>
 #include "mst_dma.h"
 #include "mst_defs.h"
 #include "mst_pci_conf_access.h"
 
+
+unsigned int mask = 0x7fff;
+unsigned int msb_mask = 0x8000;
 
 int dma_pages_ioctl(unsigned int command, void* user_buffer,
                     struct mst_device* mst_device)
@@ -156,4 +161,97 @@ int pci_connectx_wa(unsigned int command, void* user_buffer,
 
 ReturnOnFinished:
     return error;
+}
+
+
+int vpd_read(unsigned int command, struct mst_vpd* vpd,
+             struct mst_device* mst_device)
+{
+	unsigned long jiffies_time;
+	unsigned int address;
+    unsigned short data;
+	int is_bit_set = 0;
+    int error;
+
+	/* Sets F bit to zero and write VPD address. */
+	address = mask & vpd->offset;
+	error = pci_write_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+                                  address);
+    CHECK_PCI_WRITE_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+                          address);
+
+	/* Wait for data until F bit is set with one */
+	jiffies_time = msecs_to_jiffies(vpd->timeout) + jiffies;
+	while (time_before(jiffies, jiffies_time)) {
+		    error = pci_read_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+                                         &data);
+            CHECK_PCI_READ_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR);
+
+            if (data & msb_mask) {
+                    is_bit_set = 1;
+                    break;
+            }
+
+		cond_resched();
+	}
+
+	if (!is_bit_set) {
+            mst_error("Failed to retrieve valid data\n");
+            return -ETIMEDOUT;
+    }
+
+	/* read data */
+	error = pci_read_config_dword(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_DATA,
+                                  &vpd->data);
+    CHECK_PCI_READ_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_DATA);
+
+ReturnOnFinished:
+	return error;
+}
+
+
+int vpd_write(unsigned int command, struct mst_vpd* vpd,
+              struct mst_device* mst_device)
+{
+	unsigned long jiffies_time;
+	unsigned int address;
+    unsigned short data;
+	int is_bit_set = 0;
+    int error;
+
+	/* Write the user data */
+	error = pci_write_config_dword(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_DATA,
+                                   vpd->data);
+    CHECK_PCI_WRITE_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_DATA,
+                          vpd->data);
+
+	/* sets F bit to one and write VPD addr */
+	address = msb_mask | (mask & vpd->offset);
+	error = pci_write_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+                                  address);
+    CHECK_PCI_WRITE_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+                          address);
+
+	/* wait for data until F bit is set with zero */
+	jiffies_time = msecs_to_jiffies(vpd->timeout) + jiffies;
+	while (time_before(jiffies, jiffies_time)) {
+		error = pci_read_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+                                     &data);
+        CHECK_PCI_READ_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR);
+
+		if (!(data & msb_mask)) {
+			is_bit_set = 1;
+			break;
+		}
+
+		cond_resched();
+	}
+
+	if (!is_bit_set) {
+        mst_error("Failed to retrieve valid data\n");
+		return -ETIMEDOUT;
+    }
+
+ReturnOnFinished:
+	return error;
 }

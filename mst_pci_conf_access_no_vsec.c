@@ -1,5 +1,6 @@
 #include "mst_device_defs.h"
 #include "mst_pci_conf_access_no_vsec.h"
+#include "mst_defs.h"
 
 
 int read_pciconf_no_full_vsec(struct mst_device* mst_device, struct rw_operation* read_operation)

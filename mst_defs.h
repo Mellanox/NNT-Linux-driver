@@ -15,6 +15,23 @@ extern struct driver_info mst_driver_info;
 #define MST_DEVICE_PREFIX           "mt"
 #define MST_DRIVER                  "MST Driver::  "
 
+#define CHECK_PCI_READ_ERROR(error, address) \
+        if (error) { \
+                mst_error ("Failed to read from address: %x\n", address); \
+                goto ReturnOnFinished; \
+        }
+
+#define CHECK_PCI_WRITE_ERROR(error, address, data) \
+        if (error) { \
+                mst_error ("Failed to write to address: %x, data: %x\n", address, data); \
+                goto ReturnOnFinished; \
+        }
+
+#define CHECK_ERROR(error) \
+    if (error) { \
+            goto ReturnOnFinished; \
+    }
+
 #define mst_error(format, arg...) \
     pr_err("%s function name:%s, line:%d | " format, MST_DRIVER, __func__, __LINE__, ## arg)
 

@@ -99,10 +99,6 @@ static long mst_ioctl(struct file* file, unsigned int command,
                             case MST_READ:
                                     mst_device->access.read(mst_device, &rw_operation);
                                     break;
-                            default:
-                                    mst_error("ioctl not implemented, command id: %d\n", command);
-                                    error = -EINVAL;
-                                    goto ReturnOnFinished;
                     }
 
                     /* Copy the data to the user space. */
@@ -127,6 +123,48 @@ static long mst_ioctl(struct file* file, unsigned int command,
                     error = pci_connectx_wa(command, user_buffer,
                             mst_device);
                     break;
+            case MST_VPD_READ:
+            case MST_VPD_WRITE:
+            {
+                    int vpd_default_timeout = 2000;
+                    struct mst_vpd vpd;
+
+                    if (!mst_device->vpd_capability_address) {
+                            mst_error("Device %s not support Vital Product Data\n", mst_device->device_name);
+                            return -ENODEV;
+                    }
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&vpd, user_buffer,
+                                sizeof(struct mst_vpd)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    if (!vpd.timeout) {
+                        vpd.timeout = vpd_default_timeout;
+                    }
+
+                    switch(command) {
+                            case MST_VPD_READ:
+                                    error = vpd_read(command, &vpd,
+                                                     mst_device);
+                                    break;
+                            case MST_VPD_WRITE:
+                                    error = vpd_write(command, &vpd,
+                                                      mst_device);
+                                    break;
+                    }
+
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &vpd,
+                                sizeof(struct mst_vpd)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    break;
+            }
             default:
                 mst_error("ioctl not implemented, command id: %x\n", command);
                 error = -EINVAL;
