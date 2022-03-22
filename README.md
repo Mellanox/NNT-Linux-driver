@@ -1,13 +1,9 @@
 # MST-Linux-driver
-This repository is the kernel space part of MFT & MSTFlint packages aimed to provide a stable and well defined interface for NVIDIA® networking devices that are accessed via PCI Memory Mapping or by PCI configuration cycles.<br/>
+This repository is the kernel space part of [MFT](https://network.nvidia.com/products/adapter-software/firmware-tools/) & [MSTFlint](https://github.com/Mellanox/mstflint) packages aimed to provide a stable and well defined interface for NVIDIA® networking devices that are accessed via PCI Memory Mapping or by PCI configuration cycles.<br/>
+The purpose of this driver is to provide a lightweight interface between kernel and userspace for firmware management and debug tools for NVIDIA® networking devices.<br/>
+The API is described in section [Access from user space](#access-from-user-space).
 
-The purpose of this driver is to provide a lightweight API for firmware management and debug tools for NVIDIA® networking devices:
-- Generating a standard or customized NVIDIA® firmware image.
-- Querying for firmware information.
-- Burning a firmware image to a single NVIDIA® networking device via DMA access.
-- Fast access to read & write registers of the NVIDIA® networking devices.
-
-This repository is maintained by Itay Avraham (itayavr@nvidia.com), please send any comments, suggestions, or questions to me.
+This repository is maintained by [Itay Avraham](mailto:itayavr@nvidia.com?subject=[GitHub]%20NDM%20Linux%20driver), please send any comments, suggestions, or questions to the maintainer.
 
 ## How to compile and load the driver.
 Build the driver by using the make command and load the driver using the insmod command:<br/>
@@ -30,7 +26,7 @@ Build the driver by using the make command and load the driver using the insmod 
 - MFT version >=4.20.x
 - MSTFlint version >=4.20.x
 
-## How to access from user space<br/>
+## Access from user space<br/>
 IOCTL system call will be the communication channel between user space and kernel space.<br/>
 Here is a short explanation regarding the IOCTLS codes:<br/>
 
