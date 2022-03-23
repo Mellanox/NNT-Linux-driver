@@ -3,16 +3,16 @@
 #include <linux/uaccess.h>
 #include <linux/highmem.h>
 #include <linux/sched.h>
-#include "mst_dma.h"
-#include "mst_defs.h"
-#include "mst_pci_conf_access.h"
+#include "nnt_dma.h"
+#include "nnt_defs.h"
+#include "nnt_pci_conf_access.h"
 
 
 unsigned int mask = 0x7fff;
 unsigned int msb_mask = 0x8000;
 
 int dma_pages_ioctl(unsigned int command, void* user_buffer,
-                    struct mst_device* mst_device)
+                    struct nnt_device* nnt_device)
 {
     struct page_info page_info;
     int error_code = 0;
@@ -25,8 +25,8 @@ int dma_pages_ioctl(unsigned int command, void* user_buffer,
         goto ReturnOnFinished;
     }
 
-    if (command == MST_GET_DMA_PAGES) {
-        if (map_dma_pages(&page_info, mst_device)) {
+    if (command == NNT_GET_DMA_PAGES) {
+        if (map_dma_pages(&page_info, nnt_device)) {
             goto ReturnOnFinished;
         }
 
@@ -38,7 +38,7 @@ int dma_pages_ioctl(unsigned int command, void* user_buffer,
         }
     } else {
         error_code =
-            release_dma_pages(&page_info, mst_device);
+            release_dma_pages(&page_info, nnt_device);
     }
 
 ReturnOnFinished:
@@ -48,7 +48,7 @@ ReturnOnFinished:
 
 
 int read_dword_ioctl(unsigned int command, void* user_buffer,
-                     struct mst_device* mst_device)
+                     struct nnt_device* nnt_device)
 {
     struct read_dword_from_config_space read_from_cspace;
     int error_code = 0;
@@ -62,7 +62,7 @@ int read_dword_ioctl(unsigned int command, void* user_buffer,
     }
 
     /* Read the dword. */
-    if (read_dword(&read_from_cspace, mst_device)) {
+    if (read_dword(&read_from_cspace, nnt_device)) {
         goto ReturnOnFinished;
     }
 
@@ -78,8 +78,8 @@ ReturnOnFinished:
 }
 
 
-int get_mst_device_parameters(unsigned int command, void* user_buffer,
-                              struct mst_device* mst_device)
+int get_nnt_device_parameters(unsigned int command, void* user_buffer,
+                              struct nnt_device* nnt_device)
 {
     struct device_parameters parameters;
     int error = 0;
@@ -91,21 +91,21 @@ int get_mst_device_parameters(unsigned int command, void* user_buffer,
             goto ReturnOnFinished;
     }
 
-    parameters.domain = pci_domain_nr(mst_device->pci_device->bus);
-    parameters.bus = mst_device->pci_device->bus->number;
-    parameters.slot = PCI_SLOT(mst_device->pci_device->devfn);
-    parameters.func = PCI_FUNC(mst_device->pci_device->devfn);
-    parameters.pci_memory_bar_address= mst_device->memory_device.pci_memory_bar_address;
-    parameters.device = mst_device->pci_device->device;
-    parameters.vendor = mst_device->pci_device->vendor;
-    parameters.subsystem_device = mst_device->pci_device->subsystem_device;
-    parameters.subsystem_vendor = mst_device->pci_device->subsystem_vendor;
+    parameters.domain = pci_domain_nr(nnt_device->pci_device->bus);
+    parameters.bus = nnt_device->pci_device->bus->number;
+    parameters.slot = PCI_SLOT(nnt_device->pci_device->devfn);
+    parameters.func = PCI_FUNC(nnt_device->pci_device->devfn);
+    parameters.pci_memory_bar_address= nnt_device->memory_device.pci_memory_bar_address;
+    parameters.device = nnt_device->pci_device->device;
+    parameters.vendor = nnt_device->pci_device->vendor;
+    parameters.subsystem_device = nnt_device->pci_device->subsystem_device;
+    parameters.subsystem_vendor = nnt_device->pci_device->subsystem_vendor;
 
-    check_address_space_support(mst_device);
-    if (mst_device->pciconf_device.vendor_specific_capability &&
-            (mst_device->pciconf_device.address_space.icmd|| mst_device->pciconf_device.address_space.cr_space ||
-             mst_device->pciconf_device.address_space.semaphore)) {
-        parameters.vendor_specific_capability = mst_device->pciconf_device.vendor_specific_capability;
+    check_address_space_support(nnt_device);
+    if (nnt_device->pciconf_device.vendor_specific_capability &&
+            (nnt_device->pciconf_device.address_space.icmd|| nnt_device->pciconf_device.address_space.cr_space ||
+             nnt_device->pciconf_device.address_space.semaphore)) {
+        parameters.vendor_specific_capability = nnt_device->pciconf_device.vendor_specific_capability;
     } else {
         parameters.vendor_specific_capability = 0;
     }
@@ -123,38 +123,38 @@ ReturnOnFinished:
 
 
 int pci_connectx_wa(unsigned int command, void* user_buffer,
-                    struct mst_device* mst_device)
+                    struct nnt_device* nnt_device)
 {
     unsigned int slot_mask;
-    struct mst_connectx_wa connectx_wa;
+    struct nnt_connectx_wa connectx_wa;
     int error = 0;
 
     /* Is this slot exists ? */
-    if (mst_device->memory_device.connectx_wa_slot_p1) {
-            mst_debug("Slot exits for file %s, slot:0x%x\n",
-                      mst_device->device_name, mst_device->memory_device.connectx_wa_slot_p1);
+    if (nnt_device->memory_device.connectx_wa_slot_p1) {
+            nnt_debug("Slot exits for file %s, slot:0x%x\n",
+                      nnt_device->device_name, nnt_device->memory_device.connectx_wa_slot_p1);
             error = 0;
             goto ReturnOnFinished;
     }
 
     /* Find first un(set) bit. and remember the slot */
-    mst_device->memory_device.connectx_wa_slot_p1= ffs(~mst_device->memory_device.connectx_wa_slot_p1);
-    if (mst_device->memory_device.connectx_wa_slot_p1 == 0 ||
-            mst_device->memory_device.connectx_wa_slot_p1 > MST_CONNECTX_WA_SIZE) {
+    nnt_device->memory_device.connectx_wa_slot_p1= ffs(~nnt_device->memory_device.connectx_wa_slot_p1);
+    if (nnt_device->memory_device.connectx_wa_slot_p1 == 0 ||
+            nnt_device->memory_device.connectx_wa_slot_p1 > NNT_CONNECTX_WA_SIZE) {
             error = -ENOLCK;
             goto ReturnOnFinished;
     }
 
-    slot_mask = 1 << (mst_device->memory_device.connectx_wa_slot_p1 - 1);
+    slot_mask = 1 << (nnt_device->memory_device.connectx_wa_slot_p1 - 1);
 
     /* set the slot as taken */
-    mst_device->memory_device.connectx_wa_slot_p1 |= slot_mask;
+    nnt_device->memory_device.connectx_wa_slot_p1 |= slot_mask;
 
-    connectx_wa.connectx_wa_slot_p1 = mst_device->memory_device.connectx_wa_slot_p1;
+    connectx_wa.connectx_wa_slot_p1 = nnt_device->memory_device.connectx_wa_slot_p1;
 
     /* Copy the data to the user space. */
     if (copy_to_user(user_buffer, &connectx_wa,
-                     sizeof(struct mst_connectx_wa)) != 0) {
+                     sizeof(struct nnt_connectx_wa)) != 0) {
             error = -EFAULT;
             goto ReturnOnFinished;
     }
@@ -164,8 +164,8 @@ ReturnOnFinished:
 }
 
 
-int vpd_read(unsigned int command, struct mst_vpd* vpd,
-             struct mst_device* mst_device)
+int vpd_read(unsigned int command, struct nnt_vpd* vpd,
+             struct nnt_device* nnt_device)
 {
 	unsigned long jiffies_time;
 	unsigned int address;
@@ -175,17 +175,17 @@ int vpd_read(unsigned int command, struct mst_vpd* vpd,
 
 	/* Sets F bit to zero and write VPD address. */
 	address = mask & vpd->offset;
-	error = pci_write_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+	error = pci_write_config_word(nnt_device->pci_device, nnt_device->vpd_capability_address + PCI_VPD_ADDR,
                                   address);
-    CHECK_PCI_WRITE_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+    CHECK_PCI_WRITE_ERROR(error, nnt_device->vpd_capability_address + PCI_VPD_ADDR,
                           address);
 
 	/* Wait for data until F bit is set with one */
 	jiffies_time = msecs_to_jiffies(vpd->timeout) + jiffies;
 	while (time_before(jiffies, jiffies_time)) {
-		    error = pci_read_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+		    error = pci_read_config_word(nnt_device->pci_device, nnt_device->vpd_capability_address + PCI_VPD_ADDR,
                                          &data);
-            CHECK_PCI_READ_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR);
+            CHECK_PCI_READ_ERROR(error, nnt_device->vpd_capability_address + PCI_VPD_ADDR);
 
             if (data & msb_mask) {
                     is_bit_set = 1;
@@ -196,22 +196,22 @@ int vpd_read(unsigned int command, struct mst_vpd* vpd,
 	}
 
 	if (!is_bit_set) {
-            mst_error("Failed to retrieve valid data\n");
+            nnt_error("Failed to retrieve valid data\n");
             return -ETIMEDOUT;
     }
 
 	/* read data */
-	error = pci_read_config_dword(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_DATA,
+	error = pci_read_config_dword(nnt_device->pci_device, nnt_device->vpd_capability_address + PCI_VPD_DATA,
                                   &vpd->data);
-    CHECK_PCI_READ_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_DATA);
+    CHECK_PCI_READ_ERROR(error, nnt_device->vpd_capability_address + PCI_VPD_DATA);
 
 ReturnOnFinished:
 	return error;
 }
 
 
-int vpd_write(unsigned int command, struct mst_vpd* vpd,
-              struct mst_device* mst_device)
+int vpd_write(unsigned int command, struct nnt_vpd* vpd,
+              struct nnt_device* nnt_device)
 {
 	unsigned long jiffies_time;
 	unsigned int address;
@@ -220,24 +220,24 @@ int vpd_write(unsigned int command, struct mst_vpd* vpd,
     int error;
 
 	/* Write the user data */
-	error = pci_write_config_dword(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_DATA,
+	error = pci_write_config_dword(nnt_device->pci_device, nnt_device->vpd_capability_address + PCI_VPD_DATA,
                                    vpd->data);
-    CHECK_PCI_WRITE_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_DATA,
+    CHECK_PCI_WRITE_ERROR(error, nnt_device->vpd_capability_address + PCI_VPD_DATA,
                           vpd->data);
 
 	/* sets F bit to one and write VPD addr */
 	address = msb_mask | (mask & vpd->offset);
-	error = pci_write_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+	error = pci_write_config_word(nnt_device->pci_device, nnt_device->vpd_capability_address + PCI_VPD_ADDR,
                                   address);
-    CHECK_PCI_WRITE_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+    CHECK_PCI_WRITE_ERROR(error, nnt_device->vpd_capability_address + PCI_VPD_ADDR,
                           address);
 
 	/* wait for data until F bit is set with zero */
 	jiffies_time = msecs_to_jiffies(vpd->timeout) + jiffies;
 	while (time_before(jiffies, jiffies_time)) {
-		error = pci_read_config_word(mst_device->pci_device, mst_device->vpd_capability_address + PCI_VPD_ADDR,
+		error = pci_read_config_word(nnt_device->pci_device, nnt_device->vpd_capability_address + PCI_VPD_ADDR,
                                      &data);
-        CHECK_PCI_READ_ERROR(error, mst_device->vpd_capability_address + PCI_VPD_ADDR);
+        CHECK_PCI_READ_ERROR(error, nnt_device->vpd_capability_address + PCI_VPD_ADDR);
 
 		if (!(data & msb_mask)) {
 			is_bit_set = 1;
@@ -248,7 +248,7 @@ int vpd_write(unsigned int command, struct mst_vpd* vpd,
 	}
 
 	if (!is_bit_set) {
-        mst_error("Failed to retrieve valid data\n");
+        nnt_error("Failed to retrieve valid data\n");
 		return -ETIMEDOUT;
     }
 

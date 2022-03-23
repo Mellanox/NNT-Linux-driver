@@ -1,32 +1,32 @@
 #include <linux/kernel.h>
 #include <linux/pci.h>
-#include "mst_device_defs.h"
-#include "mst_pci_conf_access_defs.h"
-#include "mst_pci_conf_access.h"
-#include "mst_defs.h"
-#include "mst_ioctl_defs.h"
+#include "nnt_device_defs.h"
+#include "nnt_pci_conf_access_defs.h"
+#include "nnt_pci_conf_access.h"
+#include "nnt_defs.h"
+#include "nnt_ioctl_defs.h"
 
 int dma_mapping_page(unsigned int total_pinned, unsigned int page_mapped_counter,
-                     struct mst_device* mst_device, struct page** current_pages,
+                     struct nnt_device* nnt_device, struct page** current_pages,
                      struct page_info* page_info)
 {
     int current_page = total_pinned + page_mapped_counter;
     int error_code = 0;
 
     /* Get the dma address. */
-    mst_device->dma_page.dma_address_list[current_page] =
-        dma_map_page(&mst_device->pci_device->dev, current_pages[current_page],
+    nnt_device->dma_page.dma_address_list[current_page] =
+        dma_map_page(&nnt_device->pci_device->dev, current_pages[current_page],
                      0, PAGE_SIZE,
                      DMA_BIDIRECTIONAL);
     /* Do we get a valid dma address ? */
-    if (dma_mapping_error(&mst_device->pci_device->dev, mst_device->dma_page.dma_address_list[current_page])) {
+    if (dma_mapping_error(&nnt_device->pci_device->dev, nnt_device->dma_page.dma_address_list[current_page])) {
             printk(KERN_ERR "Failed to get DMA addresses\n");
             error_code = -EINVAL;
             goto ReturnOnFinsihed;
     }
 
     page_info->page_address_array[current_page].dma_address =
-        mst_device->dma_page.dma_address_list[current_page];
+        nnt_device->dma_page.dma_address_list[current_page];
 
 ReturnOnFinsihed:
     return error_code;
@@ -36,7 +36,7 @@ ReturnOnFinsihed:
 
 
 int pin_user_pages_in_kernel_space(unsigned int total_pages, unsigned int total_pinned,
-                                   int* pinned_pages, struct mst_device* mst_device,
+                                   int* pinned_pages, struct nnt_device* nnt_device,
                                    struct page_info* page_info, struct page*** current_pages)
 {
     unsigned long page_pointer_start = page_info->page_pointer_start;
@@ -50,7 +50,7 @@ int pin_user_pages_in_kernel_space(unsigned int total_pages, unsigned int total_
     uint64_t current_page_pointer = page_pointer_start + (total_pinned * PAGE_SIZE);
     
     /* Save the current page. */
-    *current_pages = mst_device->dma_page.page_list + total_pinned;
+    *current_pages = nnt_device->dma_page.page_list + total_pinned;
 
     /* Returns number of pages pinned - this may be fewer than the number requested
          or -errno in case of error. */
@@ -58,12 +58,12 @@ int pin_user_pages_in_kernel_space(unsigned int total_pages, unsigned int total_
                                         FOLL_WRITE, *current_pages);
 
     if (*pinned_pages < 1) {
-            kfree(mst_device->dma_page.page_list);
+            kfree(nnt_device->dma_page.page_list);
             error_code = -EFAULT;
     }
 
     /* Allocate dma addresses structure. */
-    if ((mst_device->dma_page.dma_address_list =
+    if ((nnt_device->dma_page.dma_address_list =
                 kcalloc(total_pages, sizeof(dma_addr_t), GFP_KERNEL)) == NULL) {
             error_code = -ENOMEM;
     }
@@ -74,7 +74,7 @@ int pin_user_pages_in_kernel_space(unsigned int total_pages, unsigned int total_
 
 
 
-int pin_user_memory_in_kernel_space(unsigned int total_pages, struct mst_device* mst_device,
+int pin_user_memory_in_kernel_space(unsigned int total_pages, struct nnt_device* nnt_device,
                                     struct page_info* page_info)
 {
     unsigned int page_mapped_counter= 0;
@@ -87,7 +87,7 @@ int pin_user_memory_in_kernel_space(unsigned int total_pages, struct mst_device*
             /* Pinning user pages in kernel space. */
             if((error_code =
                 pin_user_pages_in_kernel_space(total_pages, total_pinned,
-                                               &pinned_pages, mst_device,
+                                               &pinned_pages, nnt_device,
                                                page_info, &current_pages)) != 0)
                 goto ReturnOnFinished;
 
@@ -97,7 +97,7 @@ int pin_user_memory_in_kernel_space(unsigned int total_pages, struct mst_device*
             {
                     if((error_code =
                         dma_mapping_page(total_pinned, page_mapped_counter,
-                                         mst_device, current_pages,
+                                         nnt_device, current_pages,
                                          page_info)) != 0)
                         goto ReturnOnFinished;
 
@@ -120,7 +120,7 @@ ReturnOnFinished:
 
 
 
-int map_dma_pages(struct page_info* page_info, struct mst_device* mst_device)
+int map_dma_pages(struct page_info* page_info, struct nnt_device* nnt_device)
 {
     unsigned int total_pages = page_info->total_pages;
     int page_counter = 0;
@@ -134,7 +134,7 @@ int map_dma_pages(struct page_info* page_info, struct mst_device* mst_device)
     }
 
     /* Allocate the page list. */
-    if ((mst_device->dma_page.page_list =
+    if ((nnt_device->dma_page.page_list =
                 kcalloc(total_pages, sizeof(struct page *), GFP_KERNEL)) == NULL) {
             error_code = -ENOMEM;
             goto ReturnOnFinished;
@@ -142,7 +142,7 @@ int map_dma_pages(struct page_info* page_info, struct mst_device* mst_device)
 
     /* Go over the user memory buffer and pin user pages in kernel space */
     if((error_code =
-            pin_user_memory_in_kernel_space(total_pages, mst_device,
+            pin_user_memory_in_kernel_space(total_pages, nnt_device,
                                             page_info)) != 0)
             goto ReturnOnFinished;
 
@@ -150,9 +150,9 @@ int map_dma_pages(struct page_info* page_info, struct mst_device* mst_device)
             page_counter < total_pages;
             page_counter++) {
             printk(KERN_INFO "Page address structure number: %d, device: %04x:%02x:%02x.%0x\n",
-                   page_counter, pci_domain_nr(mst_device->pci_device->bus),
-                   mst_device->pci_device->bus->number, PCI_SLOT(mst_device->pci_device->devfn),
-                   PCI_FUNC(mst_device->pci_device->devfn));
+                   page_counter, pci_domain_nr(nnt_device->pci_device->bus),
+                   nnt_device->pci_device->bus->number, PCI_SLOT(nnt_device->pci_device->devfn),
+                   PCI_FUNC(nnt_device->pci_device->devfn));
     }
 
 ReturnOnFinished:
@@ -161,7 +161,7 @@ ReturnOnFinished:
 
 
 
-int release_dma_pages(struct page_info* page_info, struct mst_device* mst_device)
+int release_dma_pages(struct page_info* page_info, struct nnt_device* nnt_device)
 {
     int page_counter;
 
@@ -171,23 +171,23 @@ int release_dma_pages(struct page_info* page_info, struct mst_device* mst_device
             page_counter < page_info->total_pages;
             page_counter++) {
             /* DMA activity is finished. */
-            dma_unmap_page(&mst_device->pci_device->dev, mst_device->dma_page.dma_address_list[page_counter],
+            dma_unmap_page(&nnt_device->pci_device->dev, nnt_device->dma_page.dma_address_list[page_counter],
                            PAGE_SIZE, DMA_BIDIRECTIONAL);
 
             /* Release the page list. */
-            set_page_dirty(mst_device->dma_page.page_list[page_counter]);
-            put_page(mst_device->dma_page.page_list[page_counter]);
-            mst_device->dma_page.page_list[page_counter] = NULL;
-            mst_device->dma_page.dma_address_list[page_counter] = 0;
+            set_page_dirty(nnt_device->dma_page.page_list[page_counter]);
+            put_page(nnt_device->dma_page.page_list[page_counter]);
+            nnt_device->dma_page.page_list[page_counter] = NULL;
+            nnt_device->dma_page.dma_address_list[page_counter] = 0;
 
             printk(KERN_INFO "Page structure number: %d was released. device:%04x:%02x:%02x.%0x\n",
-                   page_counter, pci_domain_nr(mst_device->pci_device->bus),
-                   mst_device->pci_device->bus->number, PCI_SLOT(mst_device->pci_device->devfn),
-                   PCI_FUNC(mst_device->pci_device->devfn));
+                   page_counter, pci_domain_nr(nnt_device->pci_device->bus),
+                   nnt_device->pci_device->bus->number, PCI_SLOT(nnt_device->pci_device->devfn),
+                   PCI_FUNC(nnt_device->pci_device->devfn));
     }
 
     // All the pages are clean.
-    mst_device->dma_page.page_list = NULL;
+    nnt_device->dma_page.page_list = NULL;
 
     return 0;
 }

@@ -1,25 +1,25 @@
-#ifndef MST_IOCTL_DEFS_H
-#define MST_IOCTL_DEFS_H
+#ifndef NNT_IOCTL_DEFS_H
+#define NNT_IOCTL_DEFS_H
 
-#define MST_MAGIC_NUMBER                    0xD3
+#define NNT_MAGIC_NUMBER                    0xD3
 #define MAX_BUFFER_BLOCK_SIZE               256
-#define MST_MAX_PAGES_SIZE                  32
-#define MST_CONNECTX_WA_SIZE                3
+#define NNT_MAX_PAGES_SIZE                  32
+#define NNT_CONNECTX_WA_SIZE                3
 
-#define MST_WRITE                           _IOW (MST_MAGIC_NUMBER, 1, struct rw_operation)
-#define MST_READ                            _IOW (MST_MAGIC_NUMBER, 2, struct rw_operation)
-#define MST_GET_DMA_PAGES                   _IOR (MST_MAGIC_NUMBER, 3, struct page_info)
-#define MST_RELEASE_DMA_PAGES               _IOR (MST_MAGIC_NUMBER, 4, struct page_info)
-#define MST_READ_DWORD_FROM_CONFIG_SPACE    _IOR (MST_MAGIC_NUMBER, 5, struct read_dword_from_config_space)
-#define MST_GET_DEVICE_PARAMETERS           _IOR (MST_MAGIC_NUMBER, 6, struct device_parameters)
-#define MST_INIT                            _IOR (MST_MAGIC_NUMBER, 7, struct pciconf_init)
-#define MST_PCI_CONNECTX_WA                 _IOR (MST_MAGIC_NUMBER, 8, u_int32_t)
-#define MST_VPD_READ                        _IOR (MST_MAGIC_NUMBER, 9, struct mst_vpd)
-#define MST_VPD_WRITE                       _IOW (MST_MAGIC_NUMBER, 10, struct mst_vpd)
+#define NNT_WRITE                           _IOW (NNT_MAGIC_NUMBER, 1, struct rw_operation)
+#define NNT_READ                            _IOW (NNT_MAGIC_NUMBER, 2, struct rw_operation)
+#define NNT_GET_DMA_PAGES                   _IOR (NNT_MAGIC_NUMBER, 3, struct page_info)
+#define NNT_RELEASE_DMA_PAGES               _IOR (NNT_MAGIC_NUMBER, 4, struct page_info)
+#define NNT_READ_DWORD_FROM_CONFIG_SPACE    _IOR (NNT_MAGIC_NUMBER, 5, struct read_dword_from_config_space)
+#define NNT_GET_DEVICE_PARAMETERS           _IOR (NNT_MAGIC_NUMBER, 6, struct device_parameters)
+#define NNT_INIT                            _IOR (NNT_MAGIC_NUMBER, 7, struct pciconf_init)
+#define NNT_PCI_CONNECTX_WA                 _IOR (NNT_MAGIC_NUMBER, 8, u_int32_t)
+#define NNT_VPD_READ                        _IOR (NNT_MAGIC_NUMBER, 9, struct nnt_vpd)
+#define NNT_VPD_WRITE                       _IOW (NNT_MAGIC_NUMBER, 10, struct nnt_vpd)
 
 
 
-struct mst_vpd {
+struct nnt_vpd {
 	unsigned int offset;
 	unsigned int timeout;
 	unsigned int data;
@@ -55,7 +55,7 @@ struct page_address {
 struct page_info {
     unsigned int total_pages;
     unsigned long page_pointer_start;
-    struct page_address page_address_array[MST_MAX_PAGES_SIZE];
+    struct page_address page_address_array[NNT_MAX_PAGES_SIZE];
 };
 
 
@@ -73,7 +73,7 @@ struct rw_operation {
 };
 
 
-struct mst_connectx_wa {
+struct nnt_connectx_wa {
 	unsigned int connectx_wa_slot_p1;
 };
 
