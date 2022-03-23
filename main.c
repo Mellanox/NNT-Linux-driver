@@ -34,10 +34,10 @@
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>
 #include <linux/kernel.h>
-#include "mst_defs.h"
-#include "mst_device.h"
-#include "mst_ioctl.h"
-#include "mst_ioctl_defs.h"
+#include "nnt_defs.h"
+#include "nnt_device.h"
+#include "nnt_ioctl.h"
+#include "nnt_ioctl_defs.h"
 
 MODULE_AUTHOR("Itay Avraham - Nvidia | itayavr@nvidia.com");
 MODULE_DESCRIPTION("PCI Configuration access");
@@ -49,39 +49,39 @@ int mft_package = 0;
 module_param(mft_package, int,
              S_IRUSR);
 
-struct driver_info mst_driver_info;
+struct driver_info nnt_driver_info;
 
 
-static long mst_ioctl(struct file* file, unsigned int command,
+static long nnt_ioctl(struct file* file, unsigned int command,
                       unsigned long argument)
 {
     void* user_buffer = (void*)argument;
-    struct mst_device* mst_device = NULL;
+    struct nnt_device* nnt_device = NULL;
     int error;
 
-    error = mutex_lock_mst(file);
+    error = mutex_lock_nnt(file);
     CHECK_ERROR(error);
 
-    /* Get the mst device structure */
-    error = get_mst_device(file, &mst_device);
+    /* Get the nnt device structure */
+    error = get_nnt_device(file, &nnt_device);
     if (error) {
             goto ReturnOnFinished;
     }
 
     switch (command) {
-            case MST_GET_DMA_PAGES:
-            case MST_RELEASE_DMA_PAGES:
+            case NNT_GET_DMA_PAGES:
+            case NNT_RELEASE_DMA_PAGES:
                     error = dma_pages_ioctl(command, user_buffer,
-                                            mst_device);
+                                            nnt_device);
                     break;
 
-            case MST_READ_DWORD_FROM_CONFIG_SPACE:
+            case NNT_READ_DWORD_FROM_CONFIG_SPACE:
                     error = read_dword_ioctl(command, user_buffer,
-                                             mst_device);
+                                             nnt_device);
                     break;
 
-            case MST_WRITE:
-            case MST_READ:
+            case NNT_WRITE:
+            case NNT_READ:
             {   
                     struct rw_operation rw_operation;
 
@@ -93,11 +93,11 @@ static long mst_ioctl(struct file* file, unsigned int command,
                     }
 
                     switch(command) {
-                            case MST_WRITE:
-                                    mst_device->access.write(mst_device, &rw_operation);
+                            case NNT_WRITE:
+                                    nnt_device->access.write(nnt_device, &rw_operation);
                                     break;
-                            case MST_READ:
-                                    mst_device->access.read(mst_device, &rw_operation);
+                            case NNT_READ:
+                                    nnt_device->access.read(nnt_device, &rw_operation);
                                     break;
                     }
 
@@ -109,34 +109,34 @@ static long mst_ioctl(struct file* file, unsigned int command,
                     }
                     break;
             }
-            case MST_GET_DEVICE_PARAMETERS:
-                    error = get_mst_device_parameters(command, user_buffer,
-                            mst_device);
+            case NNT_GET_DEVICE_PARAMETERS:
+                    error = get_nnt_device_parameters(command, user_buffer,
+                            nnt_device);
                     
                     break;
 
-            case MST_INIT:
-                    error = mst_device->access.init(command, user_buffer,
-                                                    mst_device);
+            case NNT_INIT:
+                    error = nnt_device->access.init(command, user_buffer,
+                                                    nnt_device);
                     break;
-            case MST_PCI_CONNECTX_WA:
+            case NNT_PCI_CONNECTX_WA:
                     error = pci_connectx_wa(command, user_buffer,
-                            mst_device);
+                            nnt_device);
                     break;
-            case MST_VPD_READ:
-            case MST_VPD_WRITE:
+            case NNT_VPD_READ:
+            case NNT_VPD_WRITE:
             {
                     int vpd_default_timeout = 2000;
-                    struct mst_vpd vpd;
+                    struct nnt_vpd vpd;
 
-                    if (!mst_device->vpd_capability_address) {
-                            mst_error("Device %s not support Vital Product Data\n", mst_device->device_name);
+                    if (!nnt_device->vpd_capability_address) {
+                            nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
                             return -ENODEV;
                     }
 
                     /* Copy the request from user space. */
                     if (copy_from_user(&vpd, user_buffer,
-                                sizeof(struct mst_vpd)) != 0) {
+                                sizeof(struct nnt_vpd)) != 0) {
                             error = -EFAULT;
                             goto ReturnOnFinished;
                     }
@@ -146,19 +146,19 @@ static long mst_ioctl(struct file* file, unsigned int command,
                     }
 
                     switch(command) {
-                            case MST_VPD_READ:
+                            case NNT_VPD_READ:
                                     error = vpd_read(command, &vpd,
-                                                     mst_device);
+                                                     nnt_device);
                                     break;
-                            case MST_VPD_WRITE:
+                            case NNT_VPD_WRITE:
                                     error = vpd_write(command, &vpd,
-                                                      mst_device);
+                                                      nnt_device);
                                     break;
                     }
 
                     /* Copy the data to the user space. */
                     if (copy_to_user(user_buffer, &vpd,
-                                sizeof(struct mst_vpd)) != 0) {
+                                sizeof(struct nnt_vpd)) != 0) {
                             error = -EFAULT;
                             goto ReturnOnFinished;
                     }
@@ -166,21 +166,21 @@ static long mst_ioctl(struct file* file, unsigned int command,
                     break;
             }
             default:
-                mst_error("ioctl not implemented, command id: %x\n", command);
+                nnt_error("ioctl not implemented, command id: %x\n", command);
                 error = -EINVAL;
                 break;
                 
     }
 
 ReturnOnFinished:
-    mutex_unlock_mst(file);
+    mutex_unlock_nnt(file);
 
     return error;
 }
 
 
 
-static int mst_open(struct inode* inode, struct file* file)
+static int nnt_open(struct inode* inode, struct file* file)
 {
     if (file->private_data) {
             return 0;
@@ -192,55 +192,55 @@ static int mst_open(struct inode* inode, struct file* file)
 
 
 struct file_operations fop = {
-        .unlocked_ioctl = mst_ioctl,
-        .open = mst_open,
+        .unlocked_ioctl = nnt_ioctl,
+        .open = nnt_open,
         .owner = THIS_MODULE
 };
 
 
-static int __init mst_init_module(void)
+static int __init nnt_init_module(void)
 {
     int first_minor_number = 0;
     int error = 0;
     dev_t device_numbers;
 
     /* Get the amount of the Nvidia devices. */
-    if((mst_driver_info.contiguous_device_numbers =
+    if((nnt_driver_info.contiguous_device_numbers =
             get_amount_of_nvidia_devices()) == 0) {
-                mst_error("No devices found\n");
+                nnt_error("No devices found\n");
                 goto ReturnOnFinished;
     }
     /* Allocate char driver region and assign major number */
     if((error =
             alloc_chrdev_region(&device_numbers, first_minor_number,
-                                mst_driver_info.contiguous_device_numbers, MST_DRIVER_NAME)) != 0) {
-                mst_error("failed to allocate chrdev_region\n");
+                                nnt_driver_info.contiguous_device_numbers, NNT_DRIVER_NAME)) != 0) {
+                nnt_error("failed to allocate chrdev_region\n");
                 goto CharDeviceAllocated;
     }
 
-    mst_driver_info.driver_major_number = MAJOR(device_numbers);
+    nnt_driver_info.driver_major_number = MAJOR(device_numbers);
 
     /* create sysfs class. */
-    if ((mst_driver_info.class_driver =
-            class_create(THIS_MODULE, MST_CLASS_NAME)) == NULL) {
-            mst_error("Class creation failed\n");
+    if ((nnt_driver_info.class_driver =
+            class_create(THIS_MODULE, NNT_CLASS_NAME)) == NULL) {
+            nnt_error("Class creation failed\n");
             error = -EFAULT;
             goto DriverClassAllocated;
     }
 
-    /* Create device files for mstflint and MFT */
+    /* Create device files for nntflint and MFT */
     if((error =
-            create_mst_devices(mst_driver_info.contiguous_device_numbers, device_numbers,
+            create_nnt_devices(nnt_driver_info.contiguous_device_numbers, device_numbers,
                                mft_package, &fop)) == 0) {
             goto ReturnOnFinished;
     }
 
 DriverClassAllocated:
-    destroy_mst_devices();
-    class_destroy(mst_driver_info.class_driver);
+    destroy_nnt_devices();
+    class_destroy(nnt_driver_info.class_driver);
 
 CharDeviceAllocated:
-    unregister_chrdev_region(mst_driver_info.driver_major_number, mst_driver_info.contiguous_device_numbers);
+    unregister_chrdev_region(nnt_driver_info.driver_major_number, nnt_driver_info.contiguous_device_numbers);
 
 ReturnOnFinished:
     return error;
@@ -249,13 +249,13 @@ ReturnOnFinished:
 
 
 
-static void __exit mst_cleanup_module(void)
+static void __exit nnt_cleanup_module(void)
 {
-    destroy_mst_devices();
-    class_destroy(mst_driver_info.class_driver);
-    unregister_chrdev_region(mst_driver_info.driver_major_number, mst_driver_info.contiguous_device_numbers);
+    destroy_nnt_devices();
+    class_destroy(nnt_driver_info.class_driver);
+    unregister_chrdev_region(nnt_driver_info.driver_major_number, nnt_driver_info.contiguous_device_numbers);
 }
 
 
-module_init(mst_init_module);
-module_exit(mst_cleanup_module);
+module_init(nnt_init_module);
+module_exit(nnt_cleanup_module);
