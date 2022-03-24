@@ -1,0 +1,16 @@
+Source: kernel-mft
+Section: kernel
+Priority: optional
+Maintainer: Itay Avraham <itayavr@nvidia.com>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, bzip2, dkms
+Standards-Version: @PACKAGE_VERSION@
+Homepage: http://www.mellanox.com
+
+Package: kernel-mft-dkms
+Section: kernel
+Architecture: all
+Depends: dkms, make, ${misc:Depends}
+Recommends: linux-headers-arm64 | linux-headers-powerpc | linux-headers-ppc64 | linux-headers-ppc64le | linux-headers-amd64 | linux-headers-generic | linux-headers
+Description: DKMS support for kernel-mft kernel modules
+ This package provides integration with the DKMS infrastructure for
+ automatically building out of tree kernel modules.
