@@ -1,0 +1,3 @@
+kernel-mft (@PACKAGE_VERSION@-@PACKAGE_RC@) unstable; urgency=low
+
+  * Initial release. 
