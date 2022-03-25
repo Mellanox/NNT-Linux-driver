@@ -11,14 +11,14 @@ Build the driver by using the "make" command and load the driver by using the "i
 
   ```
   make
-  insmode insmod nnt_driver.ko
+  insmode insmod nnt_linux_driver.ko
   ```
 
 - Build and load driver for MFT
 
   ```
   make
-  insmod nnt_driver.ko mft_package=1
+  insmod nnt_linux_driver.ko mft_package=1
   ```
  
 ## Requirements
