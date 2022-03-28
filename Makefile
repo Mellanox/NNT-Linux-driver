@@ -1,4 +1,5 @@
 KERNAL_VERSION ?= $(shell uname -r)
+CPU_ARCH ?= $(shell uname -m)
 
 # Oracle Linux OS.
 ifneq ($(shell if (echo $(KERNAL_VERSION) | grep -qE 'uek'); then \
@@ -21,10 +22,15 @@ GENERATED = ofed/debian/changelog ofed/debian/control \
 		-e 's/@PACKAGE_RC@/$(PACKAGE_RC)/g' \
 	<$< >$@
 
-obj-m += nnt_driver.o
-nnt_driver-objs += nnt_device.o nnt_dma.o nnt_pci_conf_access.o \
-				   nnt_pci_conf_access_no_vsec.o nnt_memory_access.o \
-				   nnt_ioctl.o main.o
+ifneq ($(findstring ppc64, $(CPU_ARCH)),)
+obj-m += nnt_ppc_driver.o
+nnt_ppc_driver-objs += nnt_ppc_driver_main.o
+endif
+
+obj-m += nnt_linux_driver.o
+nnt_linux_driver-objs += nnt_device.o nnt_dma.o nnt_pci_conf_access.o \
+				   		 nnt_pci_conf_access_no_vsec.o nnt_memory_access.o \
+				   		 nnt_ioctl.o nnt_linux_driver_main.o
 
 all: $(GENERATED)
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules

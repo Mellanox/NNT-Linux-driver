@@ -7,7 +7,6 @@
 #include <linux/cdev.h>
 #include "nnt_ioctl_defs.h"
 
-#define NNT_NVIDIA_PCI_VENDOR       0x15b3
 #define NNT_DEVICE_ID_OFFSET        0xf0014
 #define NNT_WO_REG_ADDR_DATA        0xbadacce5
 #define NNT_NAME_SIZE               75
