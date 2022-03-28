@@ -39,8 +39,8 @@
 #include "nnt_ioctl.h"
 #include "nnt_ioctl_defs.h"
 
-MODULE_AUTHOR("Itay Avraham - Nvidia | itayavr@nvidia.com");
-MODULE_DESCRIPTION("PCI Configuration access");
+MODULE_AUTHOR("Itay Avraham <itayavr@nvidia.com>");
+MODULE_DESCRIPTION("NNT Linux driver (NVIDIA® networking tools driver)");
 
 /* Passing MFT flag argument */
 int mft_package = 0;
