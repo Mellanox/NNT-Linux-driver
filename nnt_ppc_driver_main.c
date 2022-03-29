@@ -137,38 +137,31 @@ int pci_devices_reset(void)
 {
     int error = 0;
 
-    nnt_error("rrrrrrrrrrrrrr\n");
     if (nnt_ppc_reset.reset_was_done) {
         goto ReturnOnFinished;
     }
-    nnt_error("1111111111rrrrrrrrrrrrrr\n");
+
     /* Save configuration space for all devices. */
     error = save_pci_configucation_space();
     CHECK_ERROR(error);
-
-    nnt_error("21222222111111111rrrrrrrrrrrrrr\n");
 
     /* Disable the link by sending the hot reset. */
     error = set_reset_state(pcie_hot_reset);
     CHECK_ERROR(error);
 
-    nnt_error("3333333321222222111111111rrrrrrrrrrrrrr\n");
     msleep(jiffies_to_msecs(HZ));
     
     /* Enable the link by sending the hot reset. */
     error = set_reset_state(pcie_deassert_reset);
     CHECK_ERROR(error);
 
-    nnt_error("44444444443333333321222222111111111rrrrrrrrrrrrrr\n");
     /* Wait for the device to response to PCI configuration cycles. */
     error = wait_for_response();
     CHECK_ERROR(error);
 
-    nnt_error("555555544444444443333333321222222111111111rrrrrrrrrrrrrr\n");
     /* Restore PCI configuration space for all PCI devices. */
     restore_pci_configuration_space();
 
-    nnt_error("666666666555555544444444443333333321222222111111111rrrrrrrrrrrrrr\n");
     nnt_ppc_reset.reset_was_done = 1;
 
 ReturnOnFinished:
