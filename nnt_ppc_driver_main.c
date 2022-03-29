@@ -4,7 +4,7 @@
 #include <linux/kmod.h>
 #include <linux/delay.h>
 #include "nnt_device_list.h"
-#include "nnt_ppc_driver_main.h"
+#include "nnt_ppc_driver_defs.h"
 #include "nnt_defs.h"
 
 MODULE_AUTHOR("Itay Avraham <itayavr@nvidia.com>");
@@ -14,10 +14,10 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 /* Passing PCI devices (DBDF addresses), separated by comma, for example:
  * 0000:00:08.0,0000:00:08.1 */
-char pci_device_list[NNT_MAXIMUM_DEVICE_NAME_LENGTH * NNT_MAXIMUM_NUMBER_OF_DEVICES];
+char pci_device_list[NNT_DEVICE_LIST_SIZE];
 
 /* Create the file in sysfs. */
-module_param_string(pci_device, pci_device_list, sizeof(pci_device_list), 0444);
+module_param_string(pci_dev, pci_device_list, sizeof(pci_device_list), 0444);
 
 
 struct nnt_ppc_reset_info nnt_ppc_reset;
@@ -172,22 +172,20 @@ ReturnOnFinished:
 static int init_pci_device(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     struct nnt_ppc_device* nnt_pci_device;
-    int pci_device_counter = 0;
 
     list_for_each_entry(nnt_pci_device, &nnt_device_list,
                         entry) {
             if (!strcmp(nnt_pci_device->pci_device_dbdf_name, dev_name(&pdev->dev))) {
-                    pci_clear_master(pdev);
-                    pci_disable_device(pdev);
-                    return -EINVAL;
+                    nnt_pci_device->pci_device = pdev;
+                    nnt_ppc_reset.number_of_found_pci_device++;
             }
     }
 
-    if (nnt_ppc_reset.number_of_found_pci_device != pci_device_counter) {
-            nnt_error("Part of the requested PCI devices were not found, reset will not be done.\n");
+    if (nnt_ppc_reset.number_of_requested_pci_device == nnt_ppc_reset.number_of_found_pci_device) {
+            return pci_devices_reset();
     }
 
-    return pci_devices_reset();
+    return 0;
 }
 
 
@@ -222,7 +220,7 @@ int ppc_device_structure_init(struct nnt_ppc_device** nnt_pci_device, unsigned i
     (*nnt_pci_device)->pci_device_dbdf_name =
             kzalloc(pci_device_name_length,GFP_KERNEL);
 
-    if ((*nnt_pci_device)->pci_device_dbdf_name) {
+    if (!(*nnt_pci_device)->pci_device_dbdf_name) {
             return -ENOMEM;
     }
 
@@ -233,16 +231,20 @@ int ppc_device_structure_init(struct nnt_ppc_device** nnt_pci_device, unsigned i
 int parse_pci_devices_string(void)
 {
     struct nnt_ppc_device* nnt_pci_device;
+    char buffer[NNT_DEVICE_LIST_SIZE];
     char* pci_device_dbdf_name = NULL;
+    char* dbdf_list = NULL;
     int error;
 
-    nnt_ppc_reset.number_of_found_pci_device = 0;
+    strncpy(buffer, pci_device_list, NNT_DEVICE_LIST_SIZE);
+    dbdf_list = buffer;
 
     /* Add the pci device name (DBDF) to the list. */
-    while ((pci_device_dbdf_name = strsep((char**)&pci_device_list, ",")) != NULL) {
+    while ((pci_device_dbdf_name = strsep(&dbdf_list, ",")) != NULL) {
             /* Allocate ppc device info structure. */
             unsigned int pci_device_name_length = strlen(pci_device_dbdf_name);
-            nnt_pci_device = NULL;
+            nnt_pci_device = NULL; 
+
             error = ppc_device_structure_init(&nnt_pci_device, pci_device_name_length);
             CHECK_ERROR(error);
 
@@ -252,7 +254,7 @@ int parse_pci_devices_string(void)
 
             /* Create a device entry in the list. */
             list_add_tail(&nnt_pci_device->entry, &nnt_device_list);
-            nnt_ppc_reset.number_of_found_pci_device++;
+            nnt_ppc_reset.number_of_requested_pci_device++;
     }
 
 ReturnOnFinished:
