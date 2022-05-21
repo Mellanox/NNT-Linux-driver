@@ -8,7 +8,7 @@
 
 int dma_mapping_page(unsigned int total_pinned, unsigned int page_mapped_counter,
                      struct nnt_device* nnt_device, struct page** current_pages,
-                     struct page_info* page_info)
+                     struct nnt_page_info* page_info)
 {
     int current_page = total_pinned + page_mapped_counter;
     int error_code = 0;
@@ -37,7 +37,7 @@ ReturnOnFinsihed:
 
 int pin_user_pages_in_kernel_space(unsigned int total_pages, unsigned int total_pinned,
                                    int* pinned_pages, struct nnt_device* nnt_device,
-                                   struct page_info* page_info, struct page*** current_pages)
+                                   struct nnt_page_info* page_info, struct page*** current_pages)
 {
     unsigned long page_pointer_start = page_info->page_pointer_start;
     int error_code = 0;
@@ -75,7 +75,7 @@ int pin_user_pages_in_kernel_space(unsigned int total_pages, unsigned int total_
 
 
 int pin_user_memory_in_kernel_space(unsigned int total_pages, struct nnt_device* nnt_device,
-                                    struct page_info* page_info)
+                                    struct nnt_page_info* page_info)
 {
     unsigned int page_mapped_counter= 0;
     unsigned int total_pinned = 0;
@@ -120,7 +120,7 @@ ReturnOnFinished:
 
 
 
-int map_dma_pages(struct page_info* page_info, struct nnt_device* nnt_device)
+int map_dma_pages(struct nnt_page_info* page_info, struct nnt_device* nnt_device)
 {
     unsigned int total_pages = page_info->total_pages;
     int page_counter = 0;
@@ -161,7 +161,7 @@ ReturnOnFinished:
 
 
 
-int release_dma_pages(struct page_info* page_info, struct nnt_device* nnt_device)
+int release_dma_pages(struct nnt_page_info* page_info, struct nnt_device* nnt_device)
 {
     int page_counter;
 

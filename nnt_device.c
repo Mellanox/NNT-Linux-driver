@@ -15,44 +15,93 @@ MODULE_LICENSE("GPL");
 LIST_HEAD(nnt_device_list);
 
 
-int is_wo_gw(struct nnt_device* nnt_device)
-{
-	unsigned int data = 0;
-    int error;
-
-    error = pci_write_config_dword(nnt_device->pci_device, nnt_device->pciconf_device.address_register,
-                                   NNT_DEVICE_ID_OFFSET);
-    CHECK_PCI_WRITE_ERROR(error, nnt_device->pciconf_device.address_register,
-                          NNT_DEVICE_ID_OFFSET);
-
-	/* Read the result from data register */
-    error = pci_read_config_dword(nnt_device->pci_device, nnt_device->pciconf_device.address_register,
-                                  &data);
-    CHECK_PCI_READ_ERROR(error, nnt_device->pciconf_device.address_register);
-
-	if (data == NNT_WO_REG_ADDR_DATA) {
-		    error = 1;
-    }
-
-ReturnOnFinished:
-	return error;
-}
-
-
 int get_nnt_device(struct file* file, struct nnt_device** nnt_device)
 {
     int error_code = 0;
-    *nnt_device = file->private_data;
 
-    if (!nnt_device) {
+    if (!file->private_data) {
             error_code = -EINVAL;
+    } else {
+            *nnt_device = file->private_data;
     }
 
     return error_code;
 }
 
 
-int create_file_name_nntflint(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
+
+void set_private_data_open(struct file* file)
+{
+    struct nnt_device* current_nnt_device = NULL;
+    struct nnt_device* temp_nnt_device = NULL;
+    int minor = iminor(file_inode(file));
+
+    /* Set private data to nnt structure. */
+    list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
+                             &nnt_device_list, entry) {
+            if (minor == current_nnt_device->device_number) {
+                    file->private_data = current_nnt_device;
+                    return;
+            }
+    }
+}
+
+
+
+int set_private_data_bc(struct file* file, unsigned int current_bus,
+                        unsigned int current_device, unsigned int current_function)
+{
+    struct nnt_device* current_nnt_device = NULL;
+    struct nnt_device* temp_nnt_device = NULL;
+    int minor = iminor(file_inode(file));
+
+    /* Set private data to nnt structure. */
+    list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
+                             &nnt_device_list, entry) {
+            unsigned int nnt_device_bus = current_nnt_device->pci_device->bus->number;
+            unsigned int nnt_device_device = PCI_SLOT(current_nnt_device->pci_device->devfn);
+            unsigned int nnt_device_function = PCI_FUNC(current_nnt_device->pci_device->devfn);
+
+            if ((nnt_device_bus == current_bus) && (nnt_device_device == current_device) &&
+                    (nnt_device_function == current_function)) {
+                    current_nnt_device->device_number = minor;
+                    file->private_data = current_nnt_device;
+                    return 0;
+            }
+    }
+
+    nnt_error("failed to find device with minor=%d\n", minor);
+
+    return -EINVAL;
+}
+
+
+
+
+int set_private_data(struct file* file)
+{
+    struct nnt_device* current_nnt_device = NULL;
+    struct nnt_device* temp_nnt_device = NULL;
+    int minor = iminor(file_inode(file));
+
+    /* Set private data to nnt structure. */
+    list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
+                             &nnt_device_list, entry) {
+            if (MINOR(current_nnt_device->device_number) == minor) {
+                    file->private_data = current_nnt_device;
+                    return 0;
+            }
+    }
+
+    nnt_error("failed to find device with minor=%d\n", minor);
+
+    return -EINVAL;
+}
+
+
+
+
+int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
                               enum nnt_device_type device_type)
 {
     sprintf(nnt_dev->device_name, "%4.4x:%2.2x:%2.2x.%1.1x_%s",
@@ -122,7 +171,7 @@ int create_nnt_device(struct pci_dev* pci_device, enum nnt_device_type device_ty
     } else {
             /* Build the device file name of NNTFlint. */
             if((error_code =
-                    create_file_name_nntflint(pci_device, nnt_device,
+                    create_file_name_mstflint(pci_device, nnt_device,
                                               device_type)) != 0)
                     goto ReturnOnError;
     }
@@ -162,44 +211,64 @@ int is_memory_device(struct pci_dev* pci_device)
 }
 
 
+int create_device_file(struct nnt_device* current_nnt_device, dev_t device_number,
+                       int minor, struct file_operations* fop)
+{
+    int major = MAJOR(device_number);
+    struct device* device = NULL;
+    int error = 0;
+    int count = 1;
+
+    /* NNT driver will create the device file
+         once we stop support backward compatibility. */
+    current_nnt_device->device_number = -1;
+    mutex_init(&current_nnt_device->lock);
+    current_nnt_device->mcdev.owner = THIS_MODULE;
+    goto ReturnOnFinished;
+
+    // Create device with a new minor number.
+    current_nnt_device->device_number = MKDEV(major, minor);
+
+    /* Init new device. */
+    cdev_init(&current_nnt_device->mcdev, fop);
+
+    /* Add device to the system. */
+    error =
+        cdev_add(&current_nnt_device->mcdev, current_nnt_device->device_number,
+                 count);
+    if (error) {
+        goto ReturnOnFinished;
+    }
+
+    /* Create device node. */
+    device = device_create(nnt_driver_info.class_driver, NULL,
+                      current_nnt_device->device_number, NULL,
+                      current_nnt_device->device_name);
+    if (!device) {
+        nnt_error("Device creation failed\n");
+        error = -EINVAL;
+        goto ReturnOnFinished;
+    }
+
+ReturnOnFinished:
+    return error;
+}
 
 
-int create_devices(int contiguous_device_numbers, dev_t device_number,
-                   struct file_operations* fop)
+int create_devices(dev_t device_number, struct file_operations* fop)
 {
     struct nnt_device* current_nnt_device;
 	struct nnt_device* temp_nnt_device;
-    int major = MAJOR(device_number);
-    int error_code;
     int minor = 0;
-    int count = 1;
 
     /* Create necessary number of the devices. */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
-            // Create device with a new minor number.
-            current_nnt_device->device_number = MKDEV(major, minor);
-
-            /* Init new device. */
-            current_nnt_device->mcdev.owner = THIS_MODULE;
-            cdev_init(&current_nnt_device->mcdev, fop);
-            mutex_init(&current_nnt_device->lock);
-
-            /* Add device to the system. */
-            if((error_code =
-                cdev_add(&current_nnt_device->mcdev, current_nnt_device->device_number,
-                         count)) != 0) {
-                return error_code;
-            }
-
-            /* Create device node. */
-            if (device_create(nnt_driver_info.class_driver, NULL,
-                              current_nnt_device->device_number, NULL,
-                              current_nnt_device->device_name) == NULL) {
-                nnt_error("Device creation failed\n");
-                return -1;
-            }
-
+            /* Create the device file. */
+            create_device_file(current_nnt_device, device_number,
+                               minor, fop);
+            
+            /* Members initialization. */
             current_nnt_device->pciconf_device.vendor_specific_capability =
                     pci_find_capability(current_nnt_device->pci_device, VSEC_CAPABILITY_ADDRESS);
             current_nnt_device->vpd_capability_address = pci_find_capability(current_nnt_device->pci_device, PCI_CAP_ID_VPD);
@@ -212,37 +281,18 @@ int create_devices(int contiguous_device_numbers, dev_t device_number,
                             current_nnt_device->access.read = read_pciconf;
                             current_nnt_device->access.write = write_pciconf;
                             current_nnt_device->access.init = init_pciconf;
-                            current_nnt_device->pciconf_device.semaphore_offset =
-                                    current_nnt_device->pciconf_device.vendor_specific_capability + PCI_SEMAPHORE_OFFSET;
-                            current_nnt_device->pciconf_device.data_offset =
-                                    current_nnt_device->pciconf_device.vendor_specific_capability + PCI_DATA_OFFSET;
-                            current_nnt_device->pciconf_device.address_offset =
-                                    current_nnt_device->pciconf_device.vendor_specific_capability + PCI_ADDRESS_OFFSET;
                             break;
 
                     case NNT_PCICONF_NO_FULL_VSEC:
                             current_nnt_device->access.read = read_pciconf_no_full_vsec;
                             current_nnt_device->access.write = write_pciconf_no_full_vsec;
                             current_nnt_device->access.init = init_pciconf_no_full_vsec;
-                            current_nnt_device->pciconf_device.address_register = NNT_CONF_ADDRES_REGISETER;
-                            current_nnt_device->pciconf_device.data_register = NNT_CONF_DATA_REGISTER;
-                            current_nnt_device->wo_address = is_wo_gw(current_nnt_device);
                             break;
 
                     case NNT_PCI_MEMORY:
                             current_nnt_device->access.read = read_memory;
                             current_nnt_device->access.write = write_memory;
                             current_nnt_device->access.init = init_memory;
-                            current_nnt_device->memory_device.connectx_wa_slot_p1 = 0;
-                            current_nnt_device->memory_device.hardware_memory_address =
-                                    ioremap(pci_resource_start(current_nnt_device->pci_device,
-                                                               current_nnt_device->memory_device.pci_memory_bar_address),
-                                                               NNT_MEMORY_SIZE);
-
-                            if (current_nnt_device->memory_device.hardware_memory_address <= 0) {
-                                    nnt_error("could not map device memory\n");
-                            }
-
                             break;
             }
 
@@ -255,8 +305,8 @@ int create_devices(int contiguous_device_numbers, dev_t device_number,
 
 
 
-int create_nnt_devices(int contiguous_device_numbers, dev_t device_number,
-                       int is_mft_package, struct file_operations* fop)
+int create_nnt_devices(dev_t device_number, int is_mft_package,
+                       struct file_operations* fop)
 {
     struct pci_dev* pci_device = NULL;
     int error_code = 0;
@@ -287,8 +337,7 @@ int create_nnt_devices(int contiguous_device_numbers, dev_t device_number,
 
     /* Create the devices. */
     if((error_code =
-            create_devices(contiguous_device_numbers, device_number,
-                           fop)) != 0) {
+            create_devices(device_number, fop)) != 0) {
             return error_code;
     }
 
@@ -315,29 +364,6 @@ int get_amount_of_nvidia_devices(void)
     }
 
     return contiguous_device_numbers;
-}
-
-
-
-
-int set_private_data(struct inode* inode, struct file* file)
-{
-    struct nnt_device* current_nnt_device = NULL;
-    struct nnt_device* temp_nnt_device = NULL;
-    int minor = iminor(file_inode(file));
-
-    /* Set private data to nnt structure. */
-    list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
-                             &nnt_device_list, entry) {
-            if (MINOR(current_nnt_device->device_number) == minor) {
-                    file->private_data = current_nnt_device;
-                    return 0;
-            }
-    }
-
-    nnt_error("failed to find device with minor=%d\n", minor);
-
-    return -EINVAL;
 }
 
 
@@ -378,6 +404,10 @@ void destroy_nnt_devices(void)
 {
     struct nnt_device* current_nnt_device;
     struct nnt_device* temp_nnt_device;
+
+    /* NNT driver will create the device file
+         once we stop support backward compatibility. */
+    return;
 
     /* free all nnt_devices */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,

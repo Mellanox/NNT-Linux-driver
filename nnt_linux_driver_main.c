@@ -59,6 +59,21 @@ static long nnt_ioctl(struct file* file, unsigned int command,
     struct nnt_device* nnt_device = NULL;
     int error;
 
+    /* By convention, any user gets read access
+     * and is allowed to use the device.
+     * Commands with no direction are administration
+     * commands, and you need write permission for this */
+
+    if ( _IOC_DIR(command) == _IOC_NONE ) {
+            if (!(file->f_mode & FMODE_WRITE)) {
+                    return -EPERM;
+            }
+    } else {
+            if (!(file->f_mode & FMODE_READ)) {
+                    return -EPERM;
+            }
+    }
+
     error = mutex_lock_nnt(file);
     CHECK_ERROR(error);
 
@@ -83,11 +98,11 @@ static long nnt_ioctl(struct file* file, unsigned int command,
             case NNT_WRITE:
             case NNT_READ:
             {   
-                    struct rw_operation rw_operation;
+                    struct nnt_rw_operation rw_operation;
 
                     /* Copy the request from user space. */
                     if (copy_from_user(&rw_operation, user_buffer,
-                                sizeof(struct rw_operation)) != 0) {
+                                sizeof(struct nnt_rw_operation)) != 0) {
                             error = -EFAULT;
                             goto ReturnOnFinished;
                     }
@@ -103,26 +118,54 @@ static long nnt_ioctl(struct file* file, unsigned int command,
 
                     /* Copy the data to the user space. */
                     if (copy_to_user(user_buffer, &rw_operation,
-                                sizeof(struct rw_operation)) != 0) {
+                                sizeof(struct nnt_rw_operation)) != 0) {
                             error = -EFAULT;
                             goto ReturnOnFinished;
                     }
                     break;
             }
             case NNT_GET_DEVICE_PARAMETERS:
-                    error = get_nnt_device_parameters(command, user_buffer,
-                            nnt_device);
+            {
+                    struct nnt_device_parameters nnt_parameters;
+
+                    error = get_nnt_device_parameters(&nnt_parameters, nnt_device);
+                    
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &nn_parameters,
+                                     sizeof(struct device_parameters)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
                     
                     break;
-
+            }
             case NNT_INIT:
-                    error = nnt_device->access.init(command, user_buffer,
-                                                    nnt_device);
+            {
+                    struct nnt_pciconf_init init;
+                    
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&init, user_buffer,
+                                       sizeof(struct nnt_pciconf_init)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+                    error = nnt_device->access.init(&init, nnt_device);
                     break;
+            }
             case NNT_PCI_CONNECTX_WA:
-                    error = pci_connectx_wa(command, user_buffer,
-                            nnt_device);
+            {
+                    struct nnt_connectx_wa connectx_wa;
+                    error = pci_connectx_wa(&connectx_wa, nnt_device);
+
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &connectx_wa,
+                                     sizeof(struct nnt_connectx_wa)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
                     break;
+            }
             case NNT_VPD_READ:
             case NNT_VPD_WRITE:
             {
@@ -156,13 +199,6 @@ static long nnt_ioctl(struct file* file, unsigned int command,
                                     break;
                     }
 
-                    /* Copy the data to the user space. */
-                    if (copy_to_user(user_buffer, &vpd,
-                                sizeof(struct nnt_vpd)) != 0) {
-                            error = -EFAULT;
-                            goto ReturnOnFinished;
-                    }
-
                     break;
             }
             default:
@@ -179,7 +215,6 @@ ReturnOnFinished:
 }
 
 
-
 static int nnt_open(struct inode* inode, struct file* file)
 {
     if (file->private_data) {
@@ -192,7 +227,7 @@ static int nnt_open(struct inode* inode, struct file* file)
 
 
 struct file_operations fop = {
-        .unlocked_ioctl = nnt_ioctl,
+        .unlocked_ioctl = ioctl,
         .open = nnt_open,
         .owner = THIS_MODULE
 };
@@ -210,6 +245,7 @@ static int __init nnt_init_module(void)
                 nnt_error("No devices found\n");
                 goto ReturnOnFinished;
     }
+
     /* Allocate char driver region and assign major number */
     if((error =
             alloc_chrdev_region(&device_numbers, first_minor_number,
@@ -228,7 +264,7 @@ static int __init nnt_init_module(void)
             goto DriverClassAllocated;
     }
 
-    /* Create device files for nntflint and MFT */
+    /* Create device files for MSTflint and MFT */
     if((error =
             create_nnt_devices(nnt_driver_info.contiguous_device_numbers, device_numbers,
                                mft_package, &fop)) == 0) {

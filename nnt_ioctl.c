@@ -14,13 +14,13 @@ unsigned int msb_mask = 0x8000;
 int dma_pages_ioctl(unsigned int command, void* user_buffer,
                     struct nnt_device* nnt_device)
 {
-    struct page_info page_info;
+    struct nnt_page_info page_info;
     int error_code = 0;
 
 
     /* Copy the page info structure from user space. */
     if (copy_from_user(&page_info, user_buffer,
-                       sizeof(struct page_info))) {
+                       sizeof(struct nnt_page_info))) {
         error_code = -EFAULT;
         goto ReturnOnFinished;
     }
@@ -32,7 +32,7 @@ int dma_pages_ioctl(unsigned int command, void* user_buffer,
 
         /* Return the physical address to the user */
         if (copy_to_user(user_buffer, &page_info,
-                         sizeof(struct page_info)) != 0) {
+                         sizeof(struct nnt_page_info)) != 0) {
             error_code = -EFAULT;
             goto ReturnOnFinished;
         }
@@ -47,16 +47,15 @@ ReturnOnFinished:
 
 
 
-int read_dword_ioctl(unsigned int command, void* user_buffer,
-                     struct nnt_device* nnt_device)
+int read_dword_ioctl(void* user_buffer, struct nnt_device* nnt_device)
 {
-    struct read_dword_from_config_space read_from_cspace;
+    struct nnt_read_dword_from_config_space read_from_cspace;
     int error_code = 0;
 
 
     /* Copy the request from user space. */
     if (copy_from_user(&read_from_cspace, user_buffer,
-                sizeof(struct read_dword_from_config_space)) != 0) {
+                sizeof(struct nnt_read_dword_from_config_space)) != 0) {
         error_code = -EFAULT;
         goto ReturnOnFinished;
     }
@@ -68,7 +67,7 @@ int read_dword_ioctl(unsigned int command, void* user_buffer,
 
     /* Copy the data to the user space. */
     if (copy_to_user(user_buffer, &read_from_cspace,
-                sizeof(struct read_dword_from_config_space)) != 0) {
+                sizeof(struct nnt_read_dword_from_config_space)) != 0) {
         error_code = -EFAULT;
         goto ReturnOnFinished;
     }
@@ -78,55 +77,38 @@ ReturnOnFinished:
 }
 
 
-int get_nnt_device_parameters(unsigned int command, void* user_buffer,
-                              struct nnt_device* nnt_device)
+int get_nnt_device_parameters(struct nnt_device_parameters* nnt_parameters, struct nnt_device* nnt_device)
 {
-    struct device_parameters parameters;
     int error = 0;
 
-    /* Copy the request from user space. */
-    if (copy_from_user(&parameters, user_buffer,
-                        sizeof(struct device_parameters)) != 0) {
-            error = -EFAULT;
-            goto ReturnOnFinished;
-    }
-
-    parameters.domain = pci_domain_nr(nnt_device->pci_device->bus);
-    parameters.bus = nnt_device->pci_device->bus->number;
-    parameters.slot = PCI_SLOT(nnt_device->pci_device->devfn);
-    parameters.func = PCI_FUNC(nnt_device->pci_device->devfn);
-    parameters.pci_memory_bar_address= nnt_device->memory_device.pci_memory_bar_address;
-    parameters.device = nnt_device->pci_device->device;
-    parameters.vendor = nnt_device->pci_device->vendor;
-    parameters.subsystem_device = nnt_device->pci_device->subsystem_device;
-    parameters.subsystem_vendor = nnt_device->pci_device->subsystem_vendor;
+    nnt_parameters->domain = pci_domain_nr(nnt_device->pci_device->bus);
+    nnt_parameters->bus = nnt_device->pci_device->bus->number;
+    nnt_parameters->slot = PCI_SLOT(nnt_device->pci_device->devfn);
+    nnt_parameters->function = PCI_FUNC(nnt_device->pci_device->devfn);
+    nnt_parameters->pci_memory_bar_address= nnt_device->memory_device.pci_memory_bar_address;
+    nnt_parameters->device = nnt_device->pci_device->device;
+    nnt_parameters->vendor = nnt_device->pci_device->vendor;
+    nnt_parameters->subsystem_device = nnt_device->pci_device->subsystem_device;
+    nnt_parameters->multifunction = nnt_device->pci_device->multifunction;
+    nnt_parameters->subsystem_vendor = nnt_device->pci_device->subsystem_vendor;
 
     check_address_space_support(nnt_device);
     if (nnt_device->pciconf_device.vendor_specific_capability &&
-            (nnt_device->pciconf_device.address_space.icmd|| nnt_device->pciconf_device.address_space.cr_space ||
+            (nnt_device->pciconf_device.address_space.icmd || nnt_device->pciconf_device.address_space.cr_space ||
              nnt_device->pciconf_device.address_space.semaphore)) {
-        parameters.vendor_specific_capability = nnt_device->pciconf_device.vendor_specific_capability;
+        nnt_parameters->vendor_specific_capability = nnt_device->pciconf_device.vendor_specific_capability;
+        nnt_parameters->vsec_capability_mask = nnt_device->pciconf_device.vsec_capability_mask;
     } else {
-        parameters.vendor_specific_capability = 0;
+        nnt_parameters->vendor_specific_capability = 0;
     }
 
-    /* Copy the data to the user space. */
-    if (copy_to_user(user_buffer, &parameters,
-                     sizeof(struct device_parameters)) != 0) {
-            error = -EFAULT;
-            goto ReturnOnFinished;
-    }
-
-ReturnOnFinished:
     return error;
 }
 
 
-int pci_connectx_wa(unsigned int command, void* user_buffer,
-                    struct nnt_device* nnt_device)
+int pci_connectx_wa(struct nnt_connectx_wa* connectx_wa, struct nnt_device* nnt_device)
 {
     unsigned int slot_mask;
-    struct nnt_connectx_wa connectx_wa;
     int error = 0;
 
     /* Is this slot exists ? */
@@ -150,22 +132,14 @@ int pci_connectx_wa(unsigned int command, void* user_buffer,
     /* set the slot as taken */
     nnt_device->memory_device.connectx_wa_slot_p1 |= slot_mask;
 
-    connectx_wa.connectx_wa_slot_p1 = nnt_device->memory_device.connectx_wa_slot_p1;
-
-    /* Copy the data to the user space. */
-    if (copy_to_user(user_buffer, &connectx_wa,
-                     sizeof(struct nnt_connectx_wa)) != 0) {
-            error = -EFAULT;
-            goto ReturnOnFinished;
-    }
+    connectx_wa->connectx_wa_slot_p1 = nnt_device->memory_device.connectx_wa_slot_p1;
 
 ReturnOnFinished:
     return error;
 }
 
 
-int vpd_read(unsigned int command, struct nnt_vpd* vpd,
-             struct nnt_device* nnt_device)
+int vpd_read(struct nnt_vpd* vpd, struct nnt_device* nnt_device)
 {
 	unsigned long jiffies_time;
 	unsigned int address;
@@ -210,8 +184,7 @@ ReturnOnFinished:
 }
 
 
-int vpd_write(unsigned int command, struct nnt_vpd* vpd,
-              struct nnt_device* nnt_device)
+int vpd_write(struct nnt_vpd* vpd, struct nnt_device* nnt_device)
 {
 	unsigned long jiffies_time;
 	unsigned int address;

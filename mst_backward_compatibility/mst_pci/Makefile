@@ -7,12 +7,13 @@ ifneq ($(shell if (echo $(KERNAL_VERSION) | grep -qE 'uek'); then \
 override WITH_MAKE_PARAMS += ctf-dir=$(CWD)/.ctf
 endif
 
+NNT_DRIVER_LOCATION = ../../
 PACKAGE_NAME = nnt-driver
 PACKAGE_VERSION = 1.0.0
 PACKAGE_RC = 1
 
-GENERATED = ofed/debian/changelog ofed/debian/control \
-  ofed/debian/control.no_dkms ofed/debian/rules
+GENERATED = $(NNT_DRIVER_LOCATION)/ofed/debian/changelog $(NNT_DRIVER_LOCATION)/ofed/debian/control \
+  $(NNT_DRIVER_LOCATION)/ofed/debian/control.no_dkms $(NNT_DRIVER_LOCATION)/ofed/debian/rules
 
 
 %: %.in
@@ -22,15 +23,11 @@ GENERATED = ofed/debian/changelog ofed/debian/control \
 		-e 's/@PACKAGE_RC@/$(PACKAGE_RC)/g' \
 	<$< >$@
 
-ifneq ($(findstring ppc64, $(CPU_ARCH)),)
-obj-m += mst_ppc_pci_reset.o
-mst_ppc_pci_reset-objs += nnt_ppc_driver_main.o
-endif
-
-obj-m += nnt_driver.o
-nnt_driver-objs += nnt_device.o nnt_dma.o nnt_pci_conf_access.o \
-		 		   nnt_pci_conf_access_no_vsec.o nnt_memory_access.o \
-		   	       nnt_ioctl.o
+obj-m += mst_pci.o
+EXTRA_CFLAGS= -I$(PWD)/$(NNT_DRIVER_LOCATION)
+mst_pci-objs += $(NNT_DRIVER_LOCATION)/nnt_device.o $(NNT_DRIVER_LOCATION)/nnt_dma.o $(NNT_DRIVER_LOCATION)/nnt_pci_conf_access.o \
+		 		$(NNT_DRIVER_LOCATION)/nnt_pci_conf_access_no_vsec.o $(NNT_DRIVER_LOCATION)/nnt_memory_access.o \
+		   		$(NNT_DRIVER_LOCATION)/nnt_ioctl.o mst_pci_bc.o
 
 all: $(GENERATED)
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
