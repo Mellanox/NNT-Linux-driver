@@ -64,6 +64,7 @@ int lock_vsec_semaphore(struct nnt_device* nnt_device)
             /* Read the semaphore, until we will get 0. */
             error = pci_read_config_dword(nnt_device->pci_device, nnt_device->pciconf_device.semaphore_offset,
                                           &lock_value);
+
             CHECK_PCI_READ_ERROR(error, nnt_device->pciconf_device.semaphore_offset);
 
             /* Is semaphore taken ? */
@@ -86,7 +87,7 @@ ReturnOnFinished:
 
 
 
-int read_dword(struct read_dword_from_config_space* read_from_cspace, struct nnt_device* nnt_device)
+int read_dword(struct nnt_read_dword_from_config_space* read_from_cspace, struct nnt_device* nnt_device)
 {
     int error;
 
@@ -130,7 +131,7 @@ ReturnOnFinished:
 }
 
 
-int set_address_space(struct nnt_device* nnt_device, unsigned int space)
+int set_address_space(struct nnt_device* nnt_device, unsigned int address_space)
 {
     unsigned int control_offset = nnt_device->pciconf_device.vendor_specific_capability + PCI_CONTROL_OFFSET;
 	unsigned int value;
@@ -141,15 +142,15 @@ int set_address_space(struct nnt_device* nnt_device, unsigned int space)
                                   &value);
     CHECK_PCI_READ_ERROR(error, control_offset);
     
-    /* Set the bit space indication and write it back. */
-    value = MERGE(value, space,
+    /* Set the bit address_space indication and write it back. */
+    value = MERGE(value, address_space,
                   PCI_SPACE_BIT_OFFSET, PCI_SPACE_BIT_LENGTH);
     error = pci_write_config_dword(nnt_device->pci_device, control_offset,
                                    value);
     CHECK_PCI_WRITE_ERROR(error, control_offset,
                           value);
     
-    /* Read status and make sure space is supported. */
+    /* Read status and make sure address_space is supported. */
     error = pci_read_config_dword(nnt_device->pci_device, control_offset,
                                   &value);
     CHECK_PCI_READ_ERROR(error, control_offset);
@@ -246,7 +247,7 @@ ReturnOnFinished:
 
 
 
-int read_pciconf(struct nnt_device* nnt_device, struct rw_operation* read_operation)
+int read_pciconf(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation)
 {
     int counter;
     int error;
@@ -301,7 +302,7 @@ ReturnOnFinished:
 }
 
 
-int write_pciconf(struct nnt_device* nnt_device, struct rw_operation* write_operation)
+int write_pciconf(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation)
 {
     int counter;
     int error;
@@ -330,31 +331,94 @@ ReturnOnFinished:
 }
 
 
-int init_pciconf(unsigned int command, void* user_buffer,
-                 struct nnt_device* nnt_device)
+int address_space_to_capability(u_int16_t address_space)
 {
-    struct pciconf_init init;
-    int error = 0;
-
-    /* Copy the request from user space. */
-    if (copy_from_user(&init, user_buffer,
-                       sizeof(struct pciconf_init)) != 0) {
-            error = -EFAULT;
-            goto ReturnOnFinished;
+    switch (address_space) {
+            case NNT_SPACE_ICMD:
+                    return NNT_VSEC_ICMD_SPACE_SUPPORTED;
+            case NNT_SPACE_CR_SPACE:
+                    return NNT_VSEC_CRSPACE_SPACE_SUPPORTED;
+            case NNT_SPACE_ALL_ICMD:
+                    return NNT_VSEC_ALL_ICMD_SPACE_SUPPORTED;
+            case NNT_SPACE_NODNIC_INIT_SEG:
+                    return NNT_VSEC_NODNIC_INIT_SEG_SPACE_SUPPORTED;
+            case NNT_SPACE_EXPANSION_ROM:
+                    return NNT_VSEC_EXPANSION_ROM_SPACE_SUPPORTED;
+            case NNT_SPACE_ND_CR_SPACE:
+                    return NNT_VSEC_ND_CRSPACE_SPACE_SUPPORTED;
+            case NNT_SPACE_SCAN_CR_SPACE:
+                    return NNT_VSEC_SCAN_CRSPACE_SPACE_SUPPORTED;
+            case NNT_SPACE_GLOBAL_SEMAPHORE:
+                    return NNT_VSEC_GLOBAL_SEMAPHORE_SPACE_SUPPORTED;
+            case NNT_SPACE_MAC:
+                    return NNT_VSEC_MAC_SPACE_SUPPORTED;
+            default:
+                    return 0;
     }
+}
+
+
+int get_space_support_status(struct nnt_device* nnt_device, u_int16_t address_space)
+{
+    int status = 0;
+
+    if(set_address_space(nnt_device, address_space) == 0) {
+            status = 1;
+    }
+
+    nnt_device->pciconf_device.vsec_capability_mask |= 
+            (status << address_space_to_capability(address_space));
+
+    return status;
+}
+
+
+int init_vsec_capability_mask(struct nnt_device* nnt_device)
+{
+    int error;
+    
+    /* Lock semaphore. */
+    error = lock_vsec_semaphore(nnt_device);
+    CHECK_ERROR(error);
+
+    get_space_support_status(nnt_device, NNT_SPACE_ICMD);
+    get_space_support_status(nnt_device, NNT_SPACE_CR_SPACE);
+    get_space_support_status(nnt_device, NNT_SPACE_ALL_ICMD);
+    get_space_support_status(nnt_device, NNT_SPACE_NODNIC_INIT_SEG);
+    get_space_support_status(nnt_device, NNT_SPACE_EXPANSION_ROM);
+    get_space_support_status(nnt_device, NNT_SPACE_ND_CR_SPACE);
+    get_space_support_status(nnt_device, NNT_SPACE_SCAN_CR_SPACE);
+    get_space_support_status(nnt_device, NNT_SPACE_GLOBAL_SEMAPHORE);
+    get_space_support_status(nnt_device, NNT_SPACE_MAC);
+    nnt_device->pciconf_device.vsec_capability_mask |= (1 << NNT_VSEC_INITIALIZED);
+
+ReturnOnFinished:
+    /* Clear semaphore. */
+    clear_vsec_semaphore(nnt_device);
+
+    return 0;
+}
+
+
+int init_pciconf(void* user_buffer, struct nnt_device* nnt_device)
+{
+    struct nnt_pciconf_init* init = (struct nnt_pciconf_init*)user_buffer;
  
-    nnt_device->pciconf_device.address_register = init.address_register;
-    nnt_device->pciconf_device.address_register = init.address_data_register;
+    nnt_device->pciconf_device.address_register = init->address_register;
+    nnt_device->pciconf_device.address_register = init->address_data_register;
     nnt_device->pciconf_device.vendor_specific_capability =
             pci_find_capability(nnt_device->pci_device, VSEC_CAPABILITY_ADDRESS);
 
     nnt_device->pciconf_device.semaphore_offset =
-        nnt_device->pciconf_device.vendor_specific_capability + ADDRESS_SPACE_SEMAPHORE;
+        nnt_device->pciconf_device.vendor_specific_capability + PCI_SEMAPHORE_OFFSET;
     nnt_device->pciconf_device.data_offset =
         nnt_device->pciconf_device.vendor_specific_capability + PCI_DATA_OFFSET;
     nnt_device->pciconf_device.address_offset =
         nnt_device->pciconf_device.vendor_specific_capability + PCI_ADDRESS_OFFSET;
 
-ReturnOnFinished:
-    return error;
+    if (nnt_device->pciconf_device.vendor_specific_capability) {
+            init_vsec_capability_mask(nnt_device);
+    }
+    
+    return 0;
 }

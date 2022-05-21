@@ -28,7 +28,7 @@ ReturnOnFinished:
 }
 
 
-int read_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct rw_operation* read_operation)
+int read_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation)
 {
     int counter;
     int error = 0;
@@ -81,7 +81,7 @@ ReturnOnFinished:
 }
 
 
-int write_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct rw_operation* write_operation)
+int write_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation)
 {
     int counter;
     int error = 0;
@@ -99,8 +99,34 @@ ReturnOnFinished:
 }
 
 
-int init_pciconf_no_full_vsec(unsigned int command, void* user_buffer,
-                              struct nnt_device* nnt_device)
+int is_wo_gw(struct nnt_device* nnt_device)
 {
+	unsigned int data = 0;
+    int error;
+
+    error = pci_write_config_dword(nnt_device->pci_device, nnt_device->pciconf_device.address_register,
+                                   NNT_DEVICE_ID_OFFSET);
+    CHECK_PCI_WRITE_ERROR(error, nnt_device->pciconf_device.address_register,
+                          NNT_DEVICE_ID_OFFSET);
+
+	/* Read the result from data register */
+    error = pci_read_config_dword(nnt_device->pci_device, nnt_device->pciconf_device.address_register,
+                                  &data);
+    CHECK_PCI_READ_ERROR(error, nnt_device->pciconf_device.address_register);
+
+	if (data == NNT_WO_REG_ADDR_DATA) {
+		    error = 1;
+    }
+
+ReturnOnFinished:
+	return error;
+}
+
+
+int init_pciconf_no_full_vsec(void* user_buffer, struct nnt_device* nnt_device)
+{
+    nnt_device->pciconf_device.address_register = NNT_CONF_ADDRES_REGISETER;
+    nnt_device->pciconf_device.data_register = NNT_CONF_DATA_REGISTER;
+    nnt_device->wo_address = is_wo_gw(nnt_device);
     return 0;
 }

@@ -23,11 +23,13 @@
 #define MFT_PCICONF_DEVICE_NAME         "pciconf"    
 #define MFT_MEMORY_DEVICE_NAME          "pci_cr"
 
+#define MST_BC_BUFFER_SIZE          256
+
 static struct pci_device_id pci_conf_devices[];
 static struct pci_device_id livefish_pci_devices[];
 static struct pci_device_id bar_pci_devices[];
 
-struct dma_page {
+struct nnt_dma_page {
     struct page** page_list;
     dma_addr_t* dma_address_list;
 };
@@ -48,10 +50,9 @@ struct supported_address_space {
 
 /* Forward declaration */
 struct nnt_device;
-typedef int (*callback_read) (struct nnt_device* nnt_device, struct rw_operation* read_operation);
-typedef int (*callback_write)(struct nnt_device* nnt_device, struct rw_operation* write_operation);
-typedef int (*callback_init)(unsigned int command, void* user_buffer,
-                             struct nnt_device* nnt_device);
+typedef int (*callback_read) (struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation);
+typedef int (*callback_write)(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation);
+typedef int (*callback_init)(void* user_buffer, struct nnt_device* nnt_device);
 
 struct nnt_access_callback {
     callback_read read;
@@ -67,7 +68,14 @@ struct nnt_device_pciconf {
     unsigned int semaphore_offset;
     unsigned int data_offset;
     unsigned int address_offset;
-    int vendor_specific_capability;
+    unsigned int vendor_specific_capability;
+    unsigned int vsec_capability_mask;
+};
+
+
+struct nnt_device_pci {
+    unsigned int bar_address;
+    unsigned int bar_size;
 };
 
 
@@ -82,15 +90,18 @@ struct nnt_device {
     struct nnt_device_pciconf pciconf_device;
     struct nnt_device_memory memory_device;
     struct nnt_access_callback access;
+    struct nnt_device_pci device_pci;
     struct pci_dev* pci_device;
-    struct dma_page dma_page;
+    struct nnt_dma_page dma_page;
     struct list_head entry;
     struct cdev mcdev;
     struct mutex lock;
     enum nnt_device_type device_type;
     int vpd_capability_address;
     int wo_address;
+    int buffer_used_bc;
     char device_name[NNT_NAME_SIZE];
+    char buffer_bc[MST_BC_BUFFER_SIZE];
     dev_t device_number;
 };
 
