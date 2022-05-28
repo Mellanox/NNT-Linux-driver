@@ -255,11 +255,31 @@ ReturnOnFinished:
 }
 
 
+int check_if_vsec_supported(struct nnt_device* nnt_device)
+{
+    int error = 0;
+
+    error = nnt_device->access.init(NULL, nnt_device);
+    CHECK_ERROR(error);
+
+    if (!nnt_device->pciconf_device.vsec_fully_supported) {
+            nnt_device->device_type = NNT_PCICONF_NO_VSEC;
+            nnt_device->access.read = read_pciconf_no_vsec;
+            nnt_device->access.write = write_pciconf_no_vsec;
+            nnt_device->access.init = init_pciconf_no_vsec;
+    }
+
+ReturnOnFinished:
+    return error;
+}
+
+
 int create_devices(dev_t device_number, struct file_operations* fop)
 {
     struct nnt_device* current_nnt_device;
 	struct nnt_device* temp_nnt_device;
     int minor = 0;
+    int error = 0;
 
     /* Create necessary number of the devices. */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
@@ -274,19 +294,23 @@ int create_devices(dev_t device_number, struct file_operations* fop)
             current_nnt_device->vpd_capability_address = pci_find_capability(current_nnt_device->pci_device, PCI_CAP_ID_VPD);
 
             if (!current_nnt_device->pciconf_device.vendor_specific_capability) {
-                    current_nnt_device->device_type = NNT_PCICONF_NO_FULL_VSEC;
+                    current_nnt_device->device_type = NNT_PCICONF_NO_VSEC;
             }
+
             switch (current_nnt_device->device_type) {
                     case NNT_PCICONF:
                             current_nnt_device->access.read = read_pciconf;
                             current_nnt_device->access.write = write_pciconf;
                             current_nnt_device->access.init = init_pciconf;
+
+                            error = check_if_vsec_supported(current_nnt_device);
+                            CHECK_ERROR(error);
                             break;
 
-                    case NNT_PCICONF_NO_FULL_VSEC:
-                            current_nnt_device->access.read = read_pciconf_no_full_vsec;
-                            current_nnt_device->access.write = write_pciconf_no_full_vsec;
-                            current_nnt_device->access.init = init_pciconf_no_full_vsec;
+                    case NNT_PCICONF_NO_VSEC:
+                            current_nnt_device->access.read = read_pciconf_no_vsec;
+                            current_nnt_device->access.write = write_pciconf_no_vsec;
+                            current_nnt_device->access.init = init_pciconf_no_vsec;
                             break;
 
                     case NNT_PCI_MEMORY:
@@ -299,7 +323,8 @@ int create_devices(dev_t device_number, struct file_operations* fop)
             minor++;
     }
 
-    return 0;
+ReturnOnFinished:
+    return error;
 }
 
 

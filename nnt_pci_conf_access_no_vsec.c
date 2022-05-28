@@ -3,8 +3,8 @@
 #include "nnt_defs.h"
 
 
-int read_no_full_vsec(struct nnt_device* nnt_device, unsigned int offset,
-                      unsigned int* data)
+int read_no_vsec(struct nnt_device* nnt_device, unsigned int offset,
+                 unsigned int* data)
 {
     int error;
     
@@ -28,13 +28,13 @@ ReturnOnFinished:
 }
 
 
-int read_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation)
+int read_pciconf_no_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation)
 {
     int counter;
     int error = 0;
 
     for (counter = 0; counter < read_operation->size; counter += 4) {
-            if (read_no_full_vsec(nnt_device, read_operation->offset + counter,
+            if (read_no_vsec(nnt_device, read_operation->offset + counter,
                                   &read_operation->data[counter >> 2])) {
                     error = counter;
                     goto ReturnOnFinished;
@@ -46,8 +46,8 @@ ReturnOnFinished:
 }
 
 
-int write_no_full_vsec(struct nnt_device* nnt_device, unsigned int offset,
-                       unsigned int data)
+int write_no_vsec(struct nnt_device* nnt_device, unsigned int offset,
+                  unsigned int data)
 {
     int error;
 
@@ -81,14 +81,14 @@ ReturnOnFinished:
 }
 
 
-int write_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation)
+int write_pciconf_no_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation)
 {
     int counter;
     int error = 0;
 
 	for (counter = 0; counter < write_operation->size; counter += 4) {
-            if (write_no_full_vsec(nnt_device, write_operation->offset + counter,
-                                   write_operation->data[counter >> 2])) {
+            if (write_no_vsec(nnt_device, write_operation->offset + counter,
+                              write_operation->data[counter >> 2])) {
                     error = counter;
                     goto ReturnOnFinished;
 		    }
@@ -123,7 +123,7 @@ ReturnOnFinished:
 }
 
 
-int init_pciconf_no_full_vsec(void* user_buffer, struct nnt_device* nnt_device)
+int init_pciconf_no_vsec(void* user_buffer, struct nnt_device* nnt_device)
 {
     nnt_device->pciconf_device.address_register = NNT_CONF_ADDRES_REGISETER;
     nnt_device->pciconf_device.data_register = NNT_CONF_DATA_REGISTER;
