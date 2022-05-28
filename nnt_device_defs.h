@@ -37,7 +37,7 @@ struct nnt_dma_page {
 
 enum nnt_device_type {
     NNT_PCICONF,
-    NNT_PCICONF_NO_FULL_VSEC,
+    NNT_PCICONF_NO_VSEC,
     NNT_PCI_MEMORY
 };
 
@@ -70,6 +70,7 @@ struct nnt_device_pciconf {
     unsigned int address_offset;
     unsigned int vendor_specific_capability;
     unsigned int vsec_capability_mask;
+    unsigned int vsec_fully_supported;
 };
 
 

@@ -400,14 +400,21 @@ ReturnOnFinished:
 }
 
 
+void check_vsec_minimum_support(struct nnt_device* nnt_device)
+{
+    if ((nnt_device->pciconf_device.vsec_capability_mask & (1 << NNT_VSEC_INITIALIZED)) &&
+            (nnt_device->pciconf_device.vsec_capability_mask & (1 << NNT_VSEC_ICMD_SPACE_SUPPORTED)) &&
+            (nnt_device->pciconf_device.vsec_capability_mask & (1 << NNT_VSEC_CRSPACE_SPACE_SUPPORTED)) &&
+            (nnt_device->pciconf_device.vsec_capability_mask & (1 << NNT_VSEC_GLOBAL_SEMAPHORE_SPACE_SUPPORTED))) {
+
+            nnt_device->pciconf_device.vsec_fully_supported = 1;
+    }
+}
+
+
 int init_pciconf(void* user_buffer, struct nnt_device* nnt_device)
 {
-    struct nnt_pciconf_init* init = (struct nnt_pciconf_init*)user_buffer;
- 
-    nnt_device->pciconf_device.address_register = init->address_register;
-    nnt_device->pciconf_device.address_register = init->address_data_register;
-    nnt_device->pciconf_device.vendor_specific_capability =
-            pci_find_capability(nnt_device->pci_device, VSEC_CAPABILITY_ADDRESS);
+    int error = 0;
 
     nnt_device->pciconf_device.semaphore_offset =
         nnt_device->pciconf_device.vendor_specific_capability + PCI_SEMAPHORE_OFFSET;
@@ -416,9 +423,8 @@ int init_pciconf(void* user_buffer, struct nnt_device* nnt_device)
     nnt_device->pciconf_device.address_offset =
         nnt_device->pciconf_device.vendor_specific_capability + PCI_ADDRESS_OFFSET;
 
-    if (nnt_device->pciconf_device.vendor_specific_capability) {
-            init_vsec_capability_mask(nnt_device);
-    }
-    
-    return 0;
+    error = init_vsec_capability_mask(nnt_device);
+    check_vsec_minimum_support(nnt_device);
+
+    return error;
 }

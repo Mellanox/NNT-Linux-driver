@@ -5,8 +5,8 @@
 #include "nnt_ioctl_defs.h"
 
 
-int read_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation);
-int write_pciconf_no_full_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation);
-int init_pciconf_no_full_vsec(void* user_buffer, struct nnt_device* nnt_device);
+int read_pciconf_no_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation);
+int write_pciconf_no_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation);
+int init_pciconf_no_vsec(void* user_buffer, struct nnt_device* nnt_device);
 
 #endif
