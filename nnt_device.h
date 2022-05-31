@@ -7,7 +7,7 @@
 
 
 int create_nnt_devices(dev_t device_number, int is_mft_package,
-                       struct file_operations* fop);
+                       struct file_operations* fop, int is_pciconf);
 void destroy_nnt_devices(void);
 int is_memory_device(struct pci_dev* pdev);
 int is_pciconf_device(struct pci_dev* pdev);
