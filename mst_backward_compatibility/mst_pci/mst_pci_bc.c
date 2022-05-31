@@ -24,7 +24,7 @@ static char* name = "mst_pci";
 #define  CONNECTX_WA PCI_CONNECTX_WA
 
 
-static int mst_pciconf_bc_open(struct inode* inode, struct file* file)
+static int mst_pci_bc_open(struct inode* inode, struct file* file)
 {
     if (file->private_data) {
             return 0;
@@ -36,8 +36,8 @@ static int mst_pciconf_bc_open(struct inode* inode, struct file* file)
 }
 
 
-static ssize_t mst_pciconf_bc_read(struct file* file, char* buf,
-                                   size_t count, loff_t* f_pos)
+static ssize_t mst_pci_bc_read(struct file* file, char* buf,
+                               size_t count, loff_t* f_pos)
 {
     struct nnt_device* nnt_device = NULL;
     int error;
@@ -75,8 +75,8 @@ ReturnOnFinished:
 }
 
 
-static ssize_t mst_pciconf_bc_write(struct file* file, const char* buf,
-                                    size_t count, loff_t* f_pos)
+static ssize_t mst_pci_bc_write(struct file* file, const char* buf,
+                                size_t count, loff_t* f_pos)
 {
     struct nnt_device* nnt_device = NULL;
     int error;
@@ -116,6 +116,55 @@ MutexUnlock:
 ReturnOnFinished:
 	return count;
 }
+
+
+static inline int noncached_address(unsigned long addr)
+{
+	return addr >= __pa(high_memory);
+}
+
+
+static int mst_pci_mmap(struct file *file, struct vm_area_struct *vma)
+{
+    struct nnt_device* nnt_device = NULL;
+	unsigned long long offset;
+	unsigned long vsize;
+	unsigned long off;
+    int error;
+
+    /* Get the nnt device structure */
+    error = get_nnt_device(file, &nnt_device);
+    if (error) {
+            nnt_error("nnt device is null \n");
+            goto ReturnOnFinished;
+    }
+
+    error = mutex_lock_nnt(file);
+
+	off = vma->vm_pgoff << PAGE_SHIFT;
+	vsize = vma->vm_end - vma->vm_start;
+
+	if ((nnt_device->device_pci.bar_size <= off) || (nnt_device->device_pci.bar_size < off+vsize)) {
+            error = -EINVAL;
+            goto ReturnOnFinished;
+	}
+
+	offset = nnt_device->device_pci.bar_address + off;
+
+	/* Accessing memory above the top the kernel knows about or through
+         a file pointer that was marked O_SYNC will be done non-cached. */
+	if (noncached_address(offset) || (file->f_flags & O_SYNC)) {
+		    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+    }
+
+	error = io_remap_pfn_range(vma, vma->vm_start, offset >> PAGE_SHIFT,
+			                   vsize, vma->vm_page_prot);
+
+ReturnOnFinished:
+    mutex_unlock_nnt(file);
+	return error;
+}
+
 
 static long ioctl(struct file* file, unsigned int command,
                   unsigned long argument)
@@ -165,6 +214,22 @@ static long ioctl(struct file* file, unsigned int command,
                 goto ReturnOnFinished;
             }
 
+            error = set_private_data_bc(file, mst_init.bus,
+                                        PCI_SLOT(mst_init.devfn), PCI_FUNC(mst_init.devfn));
+            if (error) {
+                goto ReturnOnFinished;
+            }
+
+            error = mutex_lock_nnt(file);
+            CHECK_ERROR(error);
+
+            /* Get the nnt device structure */
+            error = get_nnt_device(file, &nnt_device);
+            if (error) {
+                    nnt_error("nnt device is null \n");
+                    goto ReturnOnFinished;
+            }
+
 			bus = pci_find_bus(mst_init.domain, mst_init.bus);
 
 			if (!bus) {
@@ -173,7 +238,7 @@ static long ioctl(struct file* file, unsigned int command,
 			}
 
 			nnt_device->pci_device = NULL;
-			nnt_device->pci_device = pci_get_slot (bus, mst_init.devfn);
+			nnt_device->pci_device = pci_get_slot(bus, mst_init.devfn);
 
 			if (!nnt_device->pci_device) {
 				error = -ENXIO;
@@ -241,6 +306,7 @@ ReturnOnFinished:
     return error;
 }
 
+
 static int mst_release(struct inode* inode, struct file* file)
 {
     struct nnt_device* nnt_device = NULL;
@@ -274,31 +340,33 @@ ReturnOnFinished:
 
 struct file_operations fop = {
         .unlocked_ioctl = ioctl,
-        .open = mst_pciconf_bc_open,
-        .write = mst_pciconf_bc_write,
-        .read = mst_pciconf_bc_read,
+        .open = mst_pci_bc_open,
+        .write = mst_pci_bc_write,
+        .read = mst_pci_bc_read,
+        .mmap = mst_pci_mmap,
         .release = mst_release,
         .owner = THIS_MODULE
 };
 
 
-static int __init mst_pciconf_init_module(void)
+static int __init mst_pci_init_module(void)
 {
     dev_t device_number = -1;
     int is_mft_package = 1;
+    int is_pciconf = 0;
     int error = 0;
     
     /* Allocate char driver region and assign major number */
     major_number = register_chrdev(0, name,
                                    &fop);
 	if (major_number <=0 ) {
-		nnt_error("Unable to register character mst pciconf driver.\n");
+		nnt_error("Unable to register character mst pci driver.\n");
 		error = -EINVAL;
 	}
 
     /* Create device files for MFT. */
     error = create_nnt_devices(device_number, is_mft_package,
-                               &fop);
+                               &fop, is_pciconf);
    
     return error;
 }
@@ -306,11 +374,11 @@ static int __init mst_pciconf_init_module(void)
 
 
 
-static void __exit mst_pciconf_cleanup_module(void)
+static void __exit mst_pci_cleanup_module(void)
 {
     unregister_chrdev(major_number, name);
 }
 
 
-module_init(mst_pciconf_init_module);
-module_exit(mst_pciconf_cleanup_module);
+module_init(mst_pci_init_module);
+module_exit(mst_pci_cleanup_module);

@@ -109,7 +109,7 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
             PCI_SLOT(pci_device->devfn), PCI_FUNC(pci_device->devfn),
             (device_type == NNT_PCICONF) ? NNTFLINT_PCICONF_DEVICE_NAME : NNTFLINT_MEMORY_DEVICE_NAME);
 
-    nnt_error("NNTFlint device name created: id: %d, slot id: %d, device name: %s\n",pci_device->device,
+    nnt_error("MSTFlint device name created: id: %d, slot id: %d, device name: %s\n",pci_device->device,
               PCI_FUNC(pci_device->devfn), nnt_dev->device_name);
 
     return 0;
@@ -120,7 +120,7 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
 int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
                          enum nnt_device_type device_type)
 {
-    sprintf(nnt_dev->device_name, "/nnt/mt%d_pci_%s%1.1x",
+    sprintf(nnt_dev->device_name, "/dev/mst/mt%d_pci_%s%1.1x",
             pci_device->device,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
@@ -331,7 +331,7 @@ ReturnOnFinished:
 
 
 int create_nnt_devices(dev_t device_number, int is_mft_package,
-                       struct file_operations* fop)
+                       struct file_operations* fop, int is_pciconf)
 {
     struct pci_dev* pci_device = NULL;
     int error_code = 0;
@@ -339,23 +339,25 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
     /* Find all Nvidia PCI devices. */
     while ((pci_device = pci_get_device(NNT_NVIDIA_PCI_VENDOR, PCI_ANY_ID,
                                         pci_device)) != NULL) {
-            /* Create pciconf device. */
-            if (is_pciconf_device(pci_device)) {
-                    if ((error_code =
-                            create_nnt_device(pci_device, NNT_PCICONF,
-                                              is_mft_package)) != 0) {
-                        nnt_error("Failed to create pci conf device\n");
-                        goto ReturnOnFinished;
+            if (is_pciconf) {
+                    /* Create pciconf device. */
+                    if (is_pciconf_device(pci_device)) {
+                            if ((error_code =
+                                    create_nnt_device(pci_device, NNT_PCICONF,
+                                                      is_mft_package)) != 0) {
+                                nnt_error("Failed to create pci conf device\n");
+                                goto ReturnOnFinished;
+                            }
                     }
-            }
-
-            /* Create pci memory device. */
-            if (is_memory_device(pci_device)) {
-                    if ((error_code =
-                            create_nnt_device(pci_device, NNT_PCI_MEMORY,
-                                              is_mft_package)) != 0) {
-                        nnt_error("Failed to create pci conf device\n");
-                        goto ReturnOnFinished;
+            } else {
+                    /* Create pci memory device. */
+                    if (is_memory_device(pci_device)) {
+                            if ((error_code =
+                                    create_nnt_device(pci_device, NNT_PCI_MEMORY,
+                                                      is_mft_package)) != 0) {
+                                nnt_error("Failed to create pci conf device\n");
+                                goto ReturnOnFinished;
+                            }
                     }
             }
     }
