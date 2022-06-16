@@ -24,6 +24,13 @@ static char* name = "mst_pci";
 #define  CONNECTX_WA PCI_CONNECTX_WA
 
 
+struct mst_device_data {
+	char buffer[MST_BC_BUFFER_SIZE];
+	int buffer_used;
+};
+
+static struct mst_device_data mst_devices[MST_BC_MAX_MINOR];
+
 static int mst_pci_bc_open(struct inode* inode, struct file* file)
 {
     if (file->private_data) {
@@ -39,29 +46,36 @@ static int mst_pci_bc_open(struct inode* inode, struct file* file)
 static ssize_t mst_pci_bc_read(struct file* file, char* buf,
                                size_t count, loff_t* f_pos)
 {
+    struct mst_device_data* mst_device = NULL;
     struct nnt_device* nnt_device = NULL;
+    int* buffer_used;
+    char* buffer;
+    int minor;
     int error;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            nnt_error("nnt device is null \n");
-            count = -EFAULT;
-            goto ReturnOnFinished;
+            minor = iminor(file_inode(file));
+	        mst_device = &mst_devices[minor];
+            buffer = mst_device->buffer;
+            buffer_used = &mst_device->buffer_used;
+
+    } else {
+        buffer = nnt_device->buffer_bc;
+        buffer_used = &nnt_device->buffer_used_bc;
     }
 
-    error = mutex_lock_nnt(file);
-
-	if (*f_pos >= nnt_device->buffer_used_bc) {
+	if (*f_pos >= *buffer_used) {
 		    count = 0;
 		    goto MutexUnlock;
 	}
 
-	if (*f_pos + count > nnt_device->buffer_used_bc) {
-		    count = nnt_device->buffer_used_bc - *f_pos;
+	if (*f_pos + count > *buffer_used) {
+		    count = *buffer_used - *f_pos;
     }
 
-	if (copy_to_user(buf,nnt_device->buffer_bc + *f_pos, count)) {
+	if (copy_to_user(buf, buffer + *f_pos, count)) {
 		    count = -EFAULT;
 		    goto MutexUnlock;
 	}
@@ -69,8 +83,10 @@ static ssize_t mst_pci_bc_read(struct file* file, char* buf,
 	*f_pos += count;
 
 MutexUnlock:
-    mutex_unlock_nnt(file);
-ReturnOnFinished:
+    if (nnt_device) {
+            mutex_unlock_nnt(file);
+    }
+
 	return count;
 }
 
@@ -78,18 +94,25 @@ ReturnOnFinished:
 static ssize_t mst_pci_bc_write(struct file* file, const char* buf,
                                 size_t count, loff_t* f_pos)
 {
+    struct mst_device_data* mst_device = NULL;
     struct nnt_device* nnt_device = NULL;
+    int* buffer_used;
+    char* buffer;
+    int minor;
     int error;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            nnt_error("nnt device is null \n");
-            count = -EFAULT;
-            goto ReturnOnFinished;
-    }
+            minor = iminor(file_inode(file));
+	        mst_device = &mst_devices[minor];
+            buffer = mst_device->buffer;
+            buffer_used = &mst_device->buffer_used;
 
-    error = mutex_lock_nnt(file);
+    } else {
+            buffer = nnt_device->buffer_bc;
+            buffer_used = &nnt_device->buffer_used_bc;
+    }
 
 	if (*f_pos >= MST_BC_BUFFER_SIZE) {
 		    count = 0;
@@ -100,20 +123,19 @@ static ssize_t mst_pci_bc_write(struct file* file, const char* buf,
 		    count = MST_BC_BUFFER_SIZE - *f_pos;
     }
 
-	if (copy_from_user(nnt_device->buffer_bc + *f_pos, buf, count)) {
+	if (copy_from_user(buffer + *f_pos, buf, count)) {
 		    count = -EFAULT;
 		    goto MutexUnlock;
 	}
 
 	*f_pos += count;
 
-	if (nnt_device->buffer_used_bc < *f_pos) {
-            nnt_device->buffer_used_bc = *f_pos;
+	if (*buffer_used < *f_pos) {
+            *buffer_used = *f_pos;
     }
 
 MutexUnlock:
     mutex_unlock_nnt(file);
-ReturnOnFinished:
 	return count;
 }
 
@@ -191,12 +213,16 @@ static long ioctl(struct file* file, unsigned int command,
 
     if (command != INIT) {
             error = mutex_lock_nnt(file);
+            if (error) {
+                return 0;
+            }
             CHECK_ERROR(error);
 
             /* Get the nnt device structure */
             error = get_nnt_device(file, &nnt_device);
             if (error) {
                     nnt_error("nnt device is null \n");
+                    error = 0;
                     goto ReturnOnFinished;
             }
     }
@@ -210,14 +236,13 @@ static long ioctl(struct file* file, unsigned int command,
             /* Copy the request from user space. */
             if (copy_from_user(&mst_init, user_buffer,
                                sizeof(struct mst_pci_init_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
+                return -EFAULT;
             }
 
             error = set_private_data_bc(file, mst_init.bus,
                                         PCI_SLOT(mst_init.devfn), PCI_FUNC(mst_init.devfn));
             if (error) {
-                goto ReturnOnFinished;
+                return 0;
             }
 
             error = mutex_lock_nnt(file);
@@ -316,6 +341,7 @@ static int mst_release(struct inode* inode, struct file* file)
     error = get_nnt_device(file, &nnt_device);
     if (error) {
             nnt_error("nnt device is null \n");
+            error = 0;
             goto ReturnOnFinished;
     }
 

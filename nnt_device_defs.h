@@ -24,6 +24,7 @@
 #define MFT_MEMORY_DEVICE_NAME          "pci_cr"
 
 #define MST_BC_BUFFER_SIZE          256
+#define MST_BC_MAX_MINOR            256
 
 static struct pci_device_id pci_conf_devices[];
 static struct pci_device_id livefish_pci_devices[];

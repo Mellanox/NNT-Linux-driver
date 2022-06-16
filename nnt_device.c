@@ -70,8 +70,6 @@ int set_private_data_bc(struct file* file, unsigned int current_bus,
             }
     }
 
-    nnt_error("failed to find device with minor=%d\n", minor);
-
     return -EINVAL;
 }
 
@@ -120,7 +118,7 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
 int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
                          enum nnt_device_type device_type)
 {
-    sprintf(nnt_dev->device_name, "/dev/mst/mt%d_pci_%s%1.1x",
+    sprintf(nnt_dev->device_name, "/dev/mst/mt%d_%s%1.1x",
             pci_device->device,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
@@ -421,7 +419,9 @@ void mutex_unlock_nnt(struct file* file)
 {
     struct nnt_device* nnt_device = file->private_data;
 
-    mutex_unlock(&nnt_device->lock);
+    if(nnt_device) {
+        mutex_unlock(&nnt_device->lock);
+    }
 }
 
 

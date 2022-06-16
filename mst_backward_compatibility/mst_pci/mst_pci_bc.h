@@ -21,17 +21,11 @@ struct mst_pci_params_st {
 	unsigned long long __attribute__((packed)) size;
 };
 
-// CONNECTX ORDERRING WA:
 
 #define CONNECTX_WA_BASE 0xf0384 // SEM BASE ADDR. SEM 0xf0380 is reserved for external tools usage.
 #define CONNECTX_WA_SIZE 3       // Size in entries
 
 #define PCI_CONNECTX_WA _IOR(PCI_MAGIC,3, u_int32_t)
-struct mst_data {
-	struct    dev_data* dev;
-	u_int32_t connectx_wa_slot_p1; // Hermon used slot plus 1. Zero means unused
-};
-
 
 
 #endif
