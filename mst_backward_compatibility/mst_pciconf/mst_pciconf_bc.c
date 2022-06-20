@@ -57,7 +57,6 @@ static ssize_t mst_pciconf_bc_read(struct file* file, char* buf,
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            nnt_error("nnt device is null \n");
             count = -EFAULT;
             goto ReturnOnFinished;
     }
@@ -96,7 +95,6 @@ static ssize_t mst_pciconf_bc_write(struct file* file, const char* buf,
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            nnt_error("nnt device is null \n");
             count = -EFAULT;
             goto ReturnOnFinished;
     }
@@ -159,7 +157,6 @@ static long ioctl(struct file* file, unsigned int command,
             /* Get the nnt device structure */
             error = get_nnt_device(file, &nnt_device);
             if (error) {
-                    nnt_error("nnt device is null \n");
                     goto ReturnOnFinished;
             }
     }
@@ -189,7 +186,6 @@ static long ioctl(struct file* file, unsigned int command,
             /* Get the nnt device structure */
             error = get_nnt_device(file, &nnt_device);
             if (error) {
-                    nnt_error("nnt device is null \n");
                     goto ReturnOnFinished;
             }
                 
