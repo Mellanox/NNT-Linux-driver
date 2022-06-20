@@ -157,7 +157,6 @@ static int mst_pci_mmap(struct file *file, struct vm_area_struct *vma)
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            nnt_error("nnt device is null \n");
             goto ReturnOnFinished;
     }
 
@@ -221,7 +220,6 @@ static long ioctl(struct file* file, unsigned int command,
             /* Get the nnt device structure */
             error = get_nnt_device(file, &nnt_device);
             if (error) {
-                    nnt_error("nnt device is null \n");
                     error = 0;
                     goto ReturnOnFinished;
             }
@@ -251,7 +249,6 @@ static long ioctl(struct file* file, unsigned int command,
             /* Get the nnt device structure */
             error = get_nnt_device(file, &nnt_device);
             if (error) {
-                    nnt_error("nnt device is null \n");
                     goto ReturnOnFinished;
             }
 
@@ -340,7 +337,6 @@ static int mst_release(struct inode* inode, struct file* file)
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            nnt_error("nnt device is null \n");
             error = 0;
             goto ReturnOnFinished;
     }
