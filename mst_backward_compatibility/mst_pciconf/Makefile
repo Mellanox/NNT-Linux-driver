@@ -7,13 +7,14 @@ ifneq ($(shell if (echo $(KERNAL_VERSION) | grep -qE 'uek'); then \
 override WITH_MAKE_PARAMS += ctf-dir=$(CWD)/.ctf
 endif
 
-NNT_DRIVER_LOCATION = ../../
+NNT_DRIVER_ROOT_LOCATION = ../../
+NNT_DRIVER_LOCATION = ../../nnt_driver
 PACKAGE_NAME = nnt-driver
 PACKAGE_VERSION = 1.0.0
 PACKAGE_RC = 1
 
-GENERATED = $(NNT_DRIVER_LOCATION)/ofed/debian/changelog $(NNT_DRIVER_LOCATION)/ofed/debian/control \
-  $(NNT_DRIVER_LOCATION)/ofed/debian/control.no_dkms $(NNT_DRIVER_LOCATION)/ofed/debian/rules
+GENERATED = $(NNT_DRIVER_ROOT_LOCATION)/ofed/debian/changelog $(NNT_DRIVER_ROOT_LOCATION)/ofed/debian/control \
+  $(NNT_DRIVER_ROOT_LOCATION)/ofed/debian/control.no_dkms $(NNT_DRIVER_ROOT_LOCATION)/ofed/debian/rules
 
 
 %: %.in

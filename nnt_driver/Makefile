@@ -23,14 +23,14 @@ GENERATED = ofed/debian/changelog ofed/debian/control \
 	<$< >$@
 
 ifneq ($(findstring ppc64, $(CPU_ARCH)),)
-obj-m += nnt_ppc_driver.o
-nnt_ppc_driver-objs += nnt_ppc_driver_main.o
+obj-m += mst_ppc_pci_reset.o
+mst_ppc_pci_reset-objs += nnt_ppc_driver_main.o
 endif
 
-obj-m += mst_pciconf.o mst_pci.o
-mst_pciconf-objs += nnt_device.o nnt_dma.o nnt_pci_conf_access.o \
-		 	nnt_pci_confs_access_no_vsec.o nnt_memory_access.o \
-		   	nnt_ioctl.o mst_pciconf_bc.o mst_pci_bc.o
+obj-m += nnt_driver.o
+nnt_driver-objs += nnt_device.o nnt_dma.o nnt_pci_conf_access.o \
+		 		   nnt_pci_conf_access_no_vsec.o nnt_memory_access.o \
+		   	       nnt_ioctl.o
 
 all: $(GENERATED)
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
