@@ -8,7 +8,7 @@
 #include "nnt_device.h"
 #include "nnt_ioctl_defs.h"
 #include "nnt_pci_conf_access.h"
-#include "mst_pci_bc.h"
+#include "mst_pci.h"
 
 
 MODULE_AUTHOR("Itay Avraham <itayavr@nvidia.com>");

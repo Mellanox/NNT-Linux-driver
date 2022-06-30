@@ -13,8 +13,8 @@ PACKAGE_NAME = nnt-driver
 PACKAGE_VERSION = 1.0.0
 PACKAGE_RC = 1
 
-GENERATED = $(NNT_DRIVER__ROOT_LOCATION)/ofed/debian/changelog $(NNT_DRIVER__ROOT_LOCATION)/ofed/debian/control \
-  $(NNT_DRIVER__ROOT_LOCATION)/ofed/debian/control.no_dkms $(NNT_DRIVER__ROOT_LOCATION)/ofed/debian/rules
+GENERATED = $(NNT_DRIVER__ROOT_LOCATION)/debian/changelog $(NNT_DRIVER__ROOT_LOCATION)/debian/control \
+  $(NNT_DRIVER__ROOT_LOCATION)/debian/control.no_dkms $(NNT_DRIVER__ROOT_LOCATION)/debian/rules
 
 
 %: %.in
@@ -28,7 +28,7 @@ obj-m += mst_pci.o
 EXTRA_CFLAGS= -I$(PWD)/$(NNT_DRIVER_LOCATION)
 mst_pci-objs += $(NNT_DRIVER_LOCATION)/nnt_device.o $(NNT_DRIVER_LOCATION)/nnt_dma.o $(NNT_DRIVER_LOCATION)/nnt_pci_conf_access.o \
 		 		$(NNT_DRIVER_LOCATION)/nnt_pci_conf_access_no_vsec.o $(NNT_DRIVER_LOCATION)/nnt_memory_access.o \
-		   		$(NNT_DRIVER_LOCATION)/nnt_ioctl.o mst_pci_bc.o
+		   		$(NNT_DRIVER_LOCATION)/nnt_ioctl.o mst_pci.o
 
 all: $(GENERATED)
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
