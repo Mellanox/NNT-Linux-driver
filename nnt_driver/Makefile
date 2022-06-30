@@ -24,7 +24,7 @@ GENERATED = ofed/debian/changelog ofed/debian/control \
 
 ifneq ($(findstring ppc64, $(CPU_ARCH)),)
 obj-m += mst_ppc_pci_reset.o
-mst_ppc_pci_reset-objs += nnt_ppc_driver_main.o
+mst_ppc_pci_reset-objs += mst_ppc_pci_reset.o
 endif
 
 obj-m += nnt_driver.o
