@@ -24,11 +24,10 @@ GENERATED = $(NNT_DRIVER__ROOT_LOCATION)/debian/changelog $(NNT_DRIVER__ROOT_LOC
 		-e 's/@PACKAGE_RC@/$(PACKAGE_RC)/g' \
 	<$< >$@
 
-obj-m += mst_pci.o
+ifneq ($(findstring ppc64, $(CPU_ARCH)),)
+obj-m += mst_ppc_pci_reset.o
 EXTRA_CFLAGS= -I$(PWD)/$(NNT_DRIVER_LOCATION)
-mst_pci-objs += $(NNT_DRIVER_LOCATION)/nnt_device.o $(NNT_DRIVER_LOCATION)/nnt_dma.o $(NNT_DRIVER_LOCATION)/nnt_pci_conf_access.o \
-		 		$(NNT_DRIVER_LOCATION)/nnt_pci_conf_access_no_vsec.o $(NNT_DRIVER_LOCATION)/nnt_memory_access.o \
-		   		$(NNT_DRIVER_LOCATION)/nnt_ioctl.o mst_pci_bc.o
+endif
 
 all: $(GENERATED)
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules

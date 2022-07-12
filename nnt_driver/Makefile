@@ -11,8 +11,8 @@ PACKAGE_NAME = nnt-driver
 PACKAGE_VERSION = 1.0.0
 PACKAGE_RC = 1
 
-GENERATED = ofed/debian/changelog ofed/debian/control \
-  ofed/debian/control.no_dkms ofed/debian/rules
+GENERATED = ../debian/changelog ../debian/control \
+  ../debian/control.no_dkms ../debian/rules
 
 
 %: %.in
@@ -24,7 +24,6 @@ GENERATED = ofed/debian/changelog ofed/debian/control \
 
 ifneq ($(findstring ppc64, $(CPU_ARCH)),)
 obj-m += mst_ppc_pci_reset.o
-mst_ppc_pci_reset-objs += mst_ppc_pci_reset.o
 endif
 
 obj-m += nnt_driver.o

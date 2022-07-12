@@ -78,11 +78,11 @@ else
 	cp -a dkms.conf    	debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp common.postinst debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp mst_backward_compatibility/mst_pci/Makefile 	 	debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pci/mst_pci.c		debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pci/mst_pci.h		debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp mst_backward_compatibility/mst_pci/mst_pci_bc.c		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pci.c
+	cp mst_backward_compatibility/mst_pci/mst_pci_bc.h		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pci.h
 	cp mst_backward_compatibility/mst_pciconf/Makefile 	 	debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pciconf/mst_pciconf.c		debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pciconf/mst_pciconf.h		debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp mst_backward_compatibility/mst_pciconf/mst_pciconf_bc.c		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pciconf.c
+	cp mst_backward_compatibility/mst_pciconf/mst_pciconf_bc.h		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pciconf.h
 	cp nnt_driver/mst_ppc_pci_reset.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp nnt_driver/nnt_ppc_driver_defs.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 	cp nnt_driver/Makefile       debian/$(pdkms)/usr/src/$(pname)-$(pversion)

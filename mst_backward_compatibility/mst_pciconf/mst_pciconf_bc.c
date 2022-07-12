@@ -8,11 +8,12 @@
 #include "nnt_device.h"
 #include "nnt_ioctl_defs.h"
 #include "nnt_pci_conf_access.h"
-#include "mst_pciconf.h"
+#include "mst_pciconf_bc.h"
 
 
 MODULE_AUTHOR("Itay Avraham <itayavr@nvidia.com>");
 MODULE_DESCRIPTION("NNT Linux driver (NVIDIA® networking tools driver), this is the backward compatibility driver");
+MODULE_LICENSE("Dual BSD/GPL");
 
 struct driver_info nnt_driver_info;
 static int major_number = -1;
@@ -547,7 +548,6 @@ static long ioctl(struct file* file, unsigned int command,
     case STOP:
             break;
     default:
-            nnt_error("ioctl not implemented, command id: %x\n", command);
             error = -EINVAL;
             break;
                 
