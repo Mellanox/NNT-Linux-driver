@@ -13,9 +13,6 @@ PACKAGE_NAME = nnt-driver
 PACKAGE_VERSION = 1.0.0
 PACKAGE_RC = 1
 
-GENERATED = $(NNT_DRIVER__ROOT_LOCATION)/debian/changelog $(NNT_DRIVER__ROOT_LOCATION)/debian/control \
-  $(NNT_DRIVER__ROOT_LOCATION)/debian/control.no_dkms $(NNT_DRIVER__ROOT_LOCATION)/debian/rules
-
 
 %: %.in
 	sed \
@@ -30,11 +27,8 @@ mst_pci-objs += $(NNT_DRIVER_LOCATION)/nnt_device.o $(NNT_DRIVER_LOCATION)/nnt_d
 		 		$(NNT_DRIVER_LOCATION)/nnt_pci_conf_access_no_vsec.o $(NNT_DRIVER_LOCATION)/nnt_memory_access.o \
 		   		$(NNT_DRIVER_LOCATION)/nnt_ioctl.o mst_pci_bc.o
 
-all: $(GENERATED)
+all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
 
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
-	rm -f $(GENERATED)
-
-generated: $(GENERATED)

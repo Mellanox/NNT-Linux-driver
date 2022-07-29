@@ -66,45 +66,24 @@ ifneq ($(WITH_DKMS),1)
 	cp mst_backward_compatibility/mst_pciconf/mst_pciconf.ko	debian/$(pdkms)/lib/modules/$(kernelver)/$(INSTALL_MOD_DIR)
 ifneq "$(findstring ppc64, $(cpu_arch))" ""
 	mkdir -p debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
-	cp nnt_driver/mst_ppc_pci_reset.ko debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
+	cp mst_backward_compatibility/mst_ppc/mst_ppc_pci_reset.ko debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
 endif
 ifeq ($(WITH_MOD_SIGN),1)
 	tools/sign-modules $(INSTALL_MOD_PATH)/lib/modules/ $(kernel_source_dir)
 endif
 else
 	# For dkms
+	mkdir -p debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_backward_compatibility/mst_pci/
+	mkdir -p debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_backward_compatibility/mst_pciconf/
+	mkdir -p debian/$(pdkms)/usr/src/$(pname)-$(pversion)/nnt_driver/
 	dh_installdirs -p$(pdkms)  usr/src/$(pname)-$(pversion)
-	cp -a COPYING 		debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp -a dkms.conf    	debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp common.postinst debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pci/Makefile 	 	debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pci/mst_pci_bc.c		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pci.c
-	cp mst_backward_compatibility/mst_pci/mst_pci_bc.h		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pci.h
-	cp mst_backward_compatibility/mst_pciconf/Makefile 	 	debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp mst_backward_compatibility/mst_pciconf/mst_pciconf_bc.c		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pciconf.c
-	cp mst_backward_compatibility/mst_pciconf/mst_pciconf_bc.h		debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_pciconf.h
-	cp nnt_driver/mst_ppc_pci_reset.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_ppc_driver_defs.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/Makefile       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_defs.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_device.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_device_defs.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_device.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_device_list.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_dma.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_dma.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_ioctl.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_ioctl_defs.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_ioctl.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_linux_driver_main.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_memory_access.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_memory_access.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_pci_conf_access.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_pci_conf_access_defs.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_pci_conf_access.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_pci_conf_access_no_vsec.c       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp nnt_driver/nnt_pci_conf_access_no_vsec.h       debian/$(pdkms)/usr/src/$(pname)-$(pversion)
-	cp -r scripts           debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a COPYING 													debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a dkms.conf    												debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp common.postinst 												debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp Makefile														debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -r mst_backward_compatibility 	 							debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -r nnt_driver 	      										debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -r scripts           										debian/$(pdkms)/usr/src/$(pname)-$(pversion)
 endif
 
 override_dh_installinit:
