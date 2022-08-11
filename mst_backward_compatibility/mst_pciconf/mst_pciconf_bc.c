@@ -360,7 +360,8 @@ static long ioctl(struct file* file, unsigned int command,
 
             if (!nnt_device->vpd_capability_address) {
                     nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
-                    return -ENODEV;
+                    error = -ENODEV;
+                    goto ReturnOnFinished;
             }
 
             /* Copy the request from user space. */
@@ -402,7 +403,8 @@ static long ioctl(struct file* file, unsigned int command,
 
             if (!nnt_device->vpd_capability_address) {
                     nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
-                    return -ENODEV;
+                    error = -ENODEV;
+                    goto ReturnOnFinished;
             }
 
             /* Copy the request from user space. */
