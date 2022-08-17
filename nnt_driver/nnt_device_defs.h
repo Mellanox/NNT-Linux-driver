@@ -76,7 +76,7 @@ struct nnt_device_pciconf {
 
 
 struct nnt_device_pci {
-    unsigned int bar_address;
+    unsigned long long bar_address;
     unsigned int bar_size;
 };
 

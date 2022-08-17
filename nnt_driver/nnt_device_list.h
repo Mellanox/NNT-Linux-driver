@@ -19,6 +19,14 @@ static struct pci_device_id pciconf_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41686) }, /* BlueField 2    */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41692) }, /* BlueField 3    */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41694) }, /* BlueField 4    */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 52000) }, /* SwitchIB       */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53000) }, /* SwitchIB 2     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 54000) }, /* Quantum        */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 54002) }, /* Quantum 2      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 54004) }, /* Quantum 3      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 52100) }, /* Spectrum 1     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53100) }, /* Spectrum 2     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53104) }, /* Spectrum 3     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53120) }, /* Spectrum 4     */
         { 0, }
 };
@@ -50,7 +58,15 @@ static struct pci_device_id livefish_pci_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x021e) }, /* ConnectX-8 Secure Flash Recovery      */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x0220) }, /* BlueField-4 SoC Flash Recovery        */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x021e) }, /* BlueField-4 Secure Flash Recovery     */
-        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x024e) }, /* Spectrum-4 Secure Flash Recovery     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x0247) }, /* SwitchIB Secure Flash Recovery        */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x024b) }, /* SwitchIB-2 Secure Flash Recovery      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x024d) }, /* Quantum Secure Flash Recovery         */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x0257) }, /* Quantum-2 Secure Flash Recovery       */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x025b) }, /* Quantum-3 Secure Flash Recovery       */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x0249) }, /* Spectrum-1 Secure Flash Recovery      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x024e) }, /* Spectrum-2 Secure Flash Recovery      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x0250) }, /* Spectrum-3 Secure Flash Recovery      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 0x0254) }, /* Spectrum-4 Secure Flash Recovery      */
         { 0, }
 };
 
