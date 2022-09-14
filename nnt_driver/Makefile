@@ -28,7 +28,7 @@ nnt_driver-objs += nnt_device.o nnt_dma.o nnt_pci_conf_access.o \
 		   	       nnt_ioctl.o
 
 all:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
+	make -C /lib/modules/$(KERNAL_VERSION)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
 
 clean:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+	make -C /lib/modules/$(KERNAL_VERSION)/build M=$(PWD) clean
