@@ -1,8 +1,8 @@
-KERNAL_VERSION ?= $(shell uname -r)
+KVERSION ?= $(shell uname -r)
 CPU_ARCH ?= $(shell uname -m)
 
 # Oracle Linux OS.
-ifneq ($(shell if (echo $(KERNAL_VERSION) | grep -qE 'uek'); then \
+ifneq ($(shell if (echo $(KVERSION) | grep -qE 'uek'); then \
                                        echo "YES"; else echo ""; fi),)
 override WITH_MAKE_PARAMS += ctf-dir=$(CWD)/.ctf
 endif
@@ -28,7 +28,7 @@ mst_pci-objs += $(NNT_DRIVER_LOCATION)/nnt_device.o $(NNT_DRIVER_LOCATION)/nnt_d
 		   		$(NNT_DRIVER_LOCATION)/nnt_ioctl.o mst_pci_bc.o
 
 all:
-	make -C /lib/modules/$(KERNAL_VERSION)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
+	make -C /lib/modules/$(KVERSION)/build M=$(PWD) CONFIG_CTF= CONFIG_CC_STACKPROTECTOR_STRONG= $(WITH_MAKE_PARAMS) modules
 
 clean:
-	make -C /lib/modules/$(KERNAL_VERSION)/build M=$(PWD) clean
+	make -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
