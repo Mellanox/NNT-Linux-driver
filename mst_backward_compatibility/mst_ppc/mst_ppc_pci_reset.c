@@ -84,14 +84,16 @@ int set_reset_state(enum pcie_reset_state state)
                         entry) {
             struct pci_dev* pci_device = nnt_pci_device->pci_device;
 
-            /* Set reset state for device devce. */
-            nnt_debug("%s Send hot reset to the device: %s\n",dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev));
-            error = pci_set_pcie_reset_state(pci_device, state);
-            if (error) {
-                    nnt_error("%s Set reset state for device failed for device: %s - error: %d\n",
-                              dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev), error);
-                goto ReturnOnFinished;
-            }
+            if (PCI_FUNC(pci_device->devfn) == 0) {
+                    /* Set reset state for device devce. */
+                    nnt_debug("%s Send hot reset to the device: %s\n",dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev));
+                    error = pci_set_pcie_reset_state(pci_device, state);
+                    if (error) {
+                            nnt_error("%s Set reset state for device failed for device: %s - error: %d\n",
+                                      dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev), error);
+                        goto ReturnOnFinished;
+                    }
+        }
     }
 
 ReturnOnFinished:
@@ -101,7 +103,7 @@ ReturnOnFinished:
 
 int save_pci_configucation_space(void)
 {
-    struct nnt_ppc_device* nnt_pci_device;
+    struct nnt_ppc_device* nnt_pci_device = NULL;
     int error = 0;
 
     list_for_each_entry(nnt_pci_device, &nnt_device_list,
