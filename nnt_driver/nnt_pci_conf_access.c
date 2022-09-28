@@ -23,7 +23,7 @@ int get_semaphore_ticket(struct nnt_device* nnt_device, unsigned int* lock_value
                          unsigned int* counter)
 {
     unsigned int counter_offset = nnt_device->pciconf_device.vendor_specific_capability + PCI_COUNTER_OFFSET;
-    int error;
+    int error = 0;
 
     /* Read ticket. */
     error = pci_read_config_dword(nnt_device->pci_device, counter_offset,
@@ -89,7 +89,7 @@ ReturnOnFinished:
 
 int read_dword(struct nnt_read_dword_from_config_space* read_from_cspace, struct nnt_device* nnt_device)
 {
-    int error;
+    int error = 0;
 
     /* Take semaphore. */
     error = lock_vsec_semaphore(nnt_device);
@@ -109,8 +109,8 @@ ReturnOnFinished:
 
 int wait_on_flag(struct nnt_device* nnt_device, u8 expected_val)
 {
-	unsigned int flag;
-	int retries;
+	unsigned int flag = 0;
+	int retries = 0;
 	int error = -1;
     
     for (retries = 0; retries < IFC_MAX_RETRIES; retries++) {
@@ -134,7 +134,7 @@ ReturnOnFinished:
 int set_address_space(struct nnt_device* nnt_device, unsigned int address_space)
 {
     unsigned int control_offset = nnt_device->pciconf_device.vendor_specific_capability + PCI_CONTROL_OFFSET;
-	unsigned int value;
+	unsigned int value = 0;
 	int error = 0;
 
     /* Read value from control offset. */
@@ -167,7 +167,7 @@ ReturnOnFinished:
 
 int check_address_space_support(struct nnt_device* nnt_device)
 {
-    int error;
+    int error = 0;
 
     if ((!nnt_device->pciconf_device.vendor_specific_capability) || (!nnt_device->pci_device)) {
 		    return 0;
@@ -249,8 +249,8 @@ ReturnOnFinished:
 
 int read_pciconf(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation)
 {
-    int counter;
-    int error;
+    int counter = 0;
+    int error = 0;
 
     /* Lock semaphore. */
     error = lock_vsec_semaphore(nnt_device);
@@ -304,8 +304,8 @@ ReturnOnFinished:
 
 int write_pciconf(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation)
 {
-    int counter;
-    int error;
+    int counter = 0;
+    int error = 0;
 
     /* Lock semaphore. */
     error = lock_vsec_semaphore(nnt_device);
@@ -375,7 +375,7 @@ int get_space_support_status(struct nnt_device* nnt_device, u_int16_t address_sp
 
 int init_vsec_capability_mask(struct nnt_device* nnt_device)
 {
-    int error;
+    int error = 0;
     
     /* Lock semaphore. */
     error = lock_vsec_semaphore(nnt_device);

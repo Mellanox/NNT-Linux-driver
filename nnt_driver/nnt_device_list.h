@@ -15,9 +15,11 @@ static struct pci_device_id pciconf_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4125) },  /* ConnectX-6DX   */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4127) },  /* ConnectX-6LX   */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4129) },  /* ConnectX-7     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4131) },  /* ConnectX-8     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41682) }, /* BlueField      */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41686) }, /* BlueField 2    */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41692) }, /* BlueField 3    */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 45692) }, /* BlueField 3 toolspf   */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41694) }, /* BlueField 4    */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 52000) }, /* SwitchIB       */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53000) }, /* SwitchIB 2     */
@@ -74,6 +76,16 @@ static struct pci_device_id livefish_pci_devices[] = {
 static struct pci_device_id bar_pci_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4099) }, /* ConnectX-3    */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4103) }, /* ConnectX-3Pro */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 52000) }, /* SwitchIB       */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53000) }, /* SwitchIB 2     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 54000) }, /* Quantum        */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 54002) }, /* Quantum 2      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 54004) }, /* Quantum 3      */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 52100) }, /* Spectrum 1     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53100) }, /* Spectrum 2     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53104) }, /* Spectrum 3     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53120) }, /* Spectrum 4     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 45692) }, /* BlueField 3 toolspf   */
         { 0, }
 };
 

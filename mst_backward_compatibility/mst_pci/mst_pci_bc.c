@@ -49,10 +49,10 @@ static ssize_t mst_pci_bc_read(struct file* file, char* buf,
 {
     struct mst_device_data* mst_device = NULL;
     struct nnt_device* nnt_device = NULL;
-    int* buffer_used;
-    char* buffer;
-    int minor;
-    int error;
+    int* buffer_used = NULL;
+    char* buffer = NULL;
+    int minor = 0;
+    int error = 0;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
@@ -97,10 +97,10 @@ static ssize_t mst_pci_bc_write(struct file* file, const char* buf,
 {
     struct mst_device_data* mst_device = NULL;
     struct nnt_device* nnt_device = NULL;
-    int* buffer_used;
-    char* buffer;
-    int minor;
-    int error;
+    int* buffer_used = NULL;
+    char* buffer = NULL;
+    int minor = 0;
+    int error = 0;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
@@ -150,10 +150,10 @@ static inline int noncached_address(unsigned long addr)
 static int mst_pci_mmap(struct file *file, struct vm_area_struct *vma)
 {
     struct nnt_device* nnt_device = NULL;
-	unsigned long long offset;
-	unsigned long vsize;
-	unsigned long off;
-    int error;
+	unsigned long long offset = 0;
+	unsigned long vsize = 0;
+	unsigned long off = 0;
+    int error = 0;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
@@ -193,7 +193,7 @@ static long ioctl(struct file* file, unsigned int command,
 {
     void* user_buffer = (void*)argument;
     struct nnt_device* nnt_device = NULL;
-    int error;
+    int error = 0;
 
      /* By convention, any user gets read access
      * and is allowed to use the device.
@@ -239,7 +239,7 @@ static long ioctl(struct file* file, unsigned int command,
             }
 
             error = set_private_data_bc(file, mst_init.bus,
-                                        PCI_SLOT(mst_init.devfn), PCI_FUNC(mst_init.devfn));
+                                        mst_init.devfn, mst_init.domain);
             if (error) {
                 return 0;
             }
@@ -256,6 +256,7 @@ static long ioctl(struct file* file, unsigned int command,
 			bus = pci_find_bus(mst_init.domain, mst_init.bus);
 
 			if (!bus) {
+                nnt_error("unable to find pci bus for domain: %x and bus: %x\n", mst_init.domain, mst_init.bus);
 				error = -ENXIO;
 				goto ReturnOnFinished;
 			}
@@ -264,11 +265,13 @@ static long ioctl(struct file* file, unsigned int command,
 			nnt_device->pci_device = pci_get_slot(bus, mst_init.devfn);
 
 			if (!nnt_device->pci_device) {
+                nnt_error("missing pci device");
 				error = -ENXIO;
 				goto ReturnOnFinished;
 			}
 
 			if (mst_init.bar >= DEVICE_COUNT_RESOURCE) {
+                nnt_error("bar offset is too large");
                 error = -ENXIO;
 				goto ReturnOnFinished;
 			}
@@ -315,6 +318,7 @@ static long ioctl(struct file* file, unsigned int command,
             break;
 	}
 	case STOP:
+            error = destroy_nnt_device_bc(nnt_device);
             break;
     default:
             error = -EINVAL;
@@ -332,7 +336,7 @@ ReturnOnFinished:
 static int mst_release(struct inode* inode, struct file* file)
 {
     struct nnt_device* nnt_device = NULL;
-    int error;
+    int error = 0;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
@@ -398,6 +402,7 @@ static int __init mst_pci_init_module(void)
 
 static void __exit mst_pci_cleanup_module(void)
 {
+    destroy_nnt_devices();
     unregister_chrdev(major_number, name);
 }
 

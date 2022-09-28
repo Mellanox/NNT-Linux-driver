@@ -39,7 +39,8 @@ void set_private_data_open(struct file* file)
     /* Set private data to nnt structure. */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
-            if (minor == current_nnt_device->device_number) {
+            if ((minor == current_nnt_device->device_number) &&
+                    current_nnt_device->device_enabled) {
                     file->private_data = current_nnt_device;
                     return;
             }
@@ -48,23 +49,37 @@ void set_private_data_open(struct file* file)
 
 
 
-int set_private_data_bc(struct file* file, unsigned int current_bus,
-                        unsigned int current_device, unsigned int current_function)
+int set_private_data_bc(struct file* file, unsigned int bus,
+                        unsigned int devfn, unsigned int domain)
 {
     struct nnt_device* current_nnt_device = NULL;
     struct nnt_device* temp_nnt_device = NULL;
     int minor = iminor(file_inode(file));
+    unsigned int current_function;
+    unsigned int current_device;
 
     /* Set private data to nnt structure. */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
-            unsigned int nnt_device_bus = current_nnt_device->pci_device->bus->number;
-            unsigned int nnt_device_device = PCI_SLOT(current_nnt_device->pci_device->devfn);
-            unsigned int nnt_device_function = PCI_FUNC(current_nnt_device->pci_device->devfn);
+            struct pci_bus* pci_bus =
+                    pci_find_bus(current_nnt_device->dbdf.domain, current_nnt_device->dbdf.bus);
+            if (!pci_bus) {
+                    return -ENXIO;
+            }
 
-            if ((nnt_device_bus == current_bus) && (nnt_device_device == current_device) &&
-                    (nnt_device_function == current_function)) {
+            current_nnt_device->pci_device =
+                    pci_get_slot(pci_bus, current_nnt_device->dbdf.devfn);
+            if (!current_nnt_device->pci_device) {
+                    return -ENXIO;
+            }
+
+            current_function = PCI_FUNC(current_nnt_device->dbdf.devfn);
+            current_device = PCI_SLOT(current_nnt_device->dbdf.devfn);
+
+            if ((current_nnt_device->dbdf.bus == bus) && (current_device == PCI_SLOT(devfn)) &&
+                    (current_function == PCI_FUNC(devfn)) && (current_nnt_device->dbdf.domain == domain)) {
                     current_nnt_device->device_number = minor;
+                    current_nnt_device->device_enabled = true;
                     file->private_data = current_nnt_device;
                     return 0;
             }
@@ -123,8 +138,8 @@ int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
 
-    nnt_error("MFT device name created: id: %d, slot id: %d, device name: %s\n",pci_device->device,
-              PCI_FUNC(pci_device->devfn), nnt_dev->device_name);
+    nnt_error("MFT device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
+              PCI_FUNC(pci_device->devfn), nnt_dev->device_name, pci_domain_nr(pci_device->bus), pci_device->bus->number);
 
     return 0;
 }
@@ -174,6 +189,9 @@ int create_nnt_device(struct pci_dev* pci_device, enum nnt_device_type device_ty
                     goto ReturnOnError;
     }
 
+    nnt_device->dbdf.bus = pci_device->bus->number;
+    nnt_device->dbdf.devfn = pci_device->devfn;
+    nnt_device->dbdf.domain = pci_domain_nr(pci_device->bus);
     nnt_device->pci_device = pci_device;
     nnt_device->device_type = device_type;
 
@@ -274,8 +292,8 @@ ReturnOnFinished:
 
 int create_devices(dev_t device_number, struct file_operations* fop)
 {
-    struct nnt_device* current_nnt_device;
-	struct nnt_device* temp_nnt_device;
+    struct nnt_device* current_nnt_device = NULL;
+	struct nnt_device* temp_nnt_device = NULL;
     int minor = 0;
     int error = 0;
 
@@ -353,7 +371,7 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
                             if ((error_code =
                                     create_nnt_device(pci_device, NNT_PCI_MEMORY,
                                                       is_mft_package)) != 0) {
-                                nnt_error("Failed to create pci conf device\n");
+                                nnt_error("Failed to create pci memory device\n");
                                 goto ReturnOnFinished;
                             }
                     }
@@ -445,4 +463,59 @@ void destroy_nnt_devices(void)
             list_del(&current_nnt_device->entry);
             kfree(current_nnt_device);
     }
+}
+
+
+void destroy_nnt_devices_bc(void)
+{
+    struct nnt_device* current_nnt_device;
+    struct nnt_device* temp_nnt_device;
+
+    /* free all nnt_devices */
+    list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
+                             &nnt_device_list, entry) {
+            /* Character device is no longer, it must be properly destroyed. */
+            list_del(&current_nnt_device->entry);
+            kfree(current_nnt_device);
+    }
+}
+
+
+int destroy_nnt_device_bc(struct nnt_device* nnt_device)
+{
+    struct nnt_device* current_nnt_device;
+    struct nnt_device* temp_nnt_device;
+    unsigned int current_function;
+    unsigned int current_device;
+
+    /* Set private data to nnt structure. */
+    list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
+                             &nnt_device_list, entry) {
+            struct pci_bus* pci_bus =
+                    pci_find_bus(current_nnt_device->dbdf.domain, current_nnt_device->dbdf.bus);
+            if (!pci_bus) {
+                    return -ENXIO;
+            }
+
+            current_nnt_device->pci_device =
+                    pci_get_slot(pci_bus, current_nnt_device->dbdf.devfn);
+            if (!current_nnt_device->pci_device) {
+                    return -ENXIO;
+            }
+
+            current_function = PCI_FUNC(current_nnt_device->dbdf.devfn);
+            current_device = PCI_SLOT(current_nnt_device->dbdf.devfn);
+
+            if ((current_nnt_device->dbdf.bus == nnt_device->dbdf.bus) && (current_device == PCI_SLOT(nnt_device->dbdf.devfn)) &&
+                    (current_function == PCI_FUNC(nnt_device->dbdf.devfn)) && (current_nnt_device->dbdf.domain == nnt_device->dbdf.domain)) {
+                    /* Character device is no longer, it must be properly disabled. */
+                    current_nnt_device->device_enabled = false;
+                    nnt_error("Device removed: domain: %d, bus: %d, device:%d, function:%d \n",
+                              current_nnt_device->dbdf.domain, current_nnt_device->dbdf.bus,
+                              current_device, current_function);
+                    return 0;
+            }
+    }
+
+    return 0;
 }

@@ -53,7 +53,7 @@ static ssize_t mst_pciconf_bc_read(struct file* file, char* buf,
                                    size_t count, loff_t* f_pos)
 {
     struct nnt_device* nnt_device = NULL;
-    int error;
+    int error = 0;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
@@ -61,7 +61,7 @@ static ssize_t mst_pciconf_bc_read(struct file* file, char* buf,
             count = -EFAULT;
             goto ReturnOnFinished;
     }
-
+    
     error = mutex_lock_nnt(file);
 
 	if (*f_pos >= nnt_device->buffer_used_bc) {
@@ -91,7 +91,7 @@ static ssize_t mst_pciconf_bc_write(struct file* file, const char* buf,
                                     size_t count, loff_t* f_pos)
 {
     struct nnt_device* nnt_device = NULL;
-    int error;
+    int error = 0;
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
@@ -133,7 +133,7 @@ static long ioctl(struct file* file, unsigned int command,
 {
     void* user_buffer = (void*)argument;
     struct nnt_device* nnt_device = NULL;
-    int error;
+    int error = 0;
 
      /* By convention, any user gets read access
      * and is allowed to use the device.
@@ -176,7 +176,7 @@ static long ioctl(struct file* file, unsigned int command,
             }
 
             error = set_private_data_bc(file, mst_init.bus,
-                                        PCI_SLOT(mst_init.devfn), PCI_FUNC(mst_init.devfn));
+                                        mst_init.devfn, mst_init.domain);
             if (error) {
                 goto ReturnOnFinished;
             }
@@ -452,7 +452,7 @@ static long ioctl(struct file* file, unsigned int command,
     }
     case READ_DWORD_FROM_CONFIG_SPACE:
     {
-            struct nnt_read_dword_from_config_space nnt_read_from_cspace;
+            struct nnt_read_dword_from_config_space nnt_read_from_cspace = {0};
 
             /* Copy the request from user space. */
             if (copy_from_user(&nnt_read_from_cspace, user_buffer,
@@ -544,10 +544,14 @@ static long ioctl(struct file* file, unsigned int command,
 
         break;
     }
+    case STOP:
+    {
+            error = destroy_nnt_device_bc(nnt_device);
+            break;
+    }
     case PCICONF_DMA_PROPS:
     case PCICONF_MEM_ACCESS:
     case MODIFY:
-    case STOP:
             break;
     default:
             error = -EINVAL;
@@ -598,6 +602,7 @@ static int __init mst_pciconf_init_module(void)
 
 static void __exit mst_pciconf_cleanup_module(void)
 {
+    destroy_nnt_devices();
     unregister_chrdev(major_number, name);
 }
 

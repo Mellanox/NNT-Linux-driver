@@ -6,7 +6,7 @@
 int read_no_vsec(struct nnt_device* nnt_device, unsigned int offset,
                  unsigned int* data)
 {
-    int error;
+    int error = 0;
     
     if (nnt_device->wo_address) {
         offset |= 0x1;
@@ -30,7 +30,7 @@ ReturnOnFinished:
 
 int read_pciconf_no_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation)
 {
-    int counter;
+    int counter = 0;
     int error = 0;
 
     for (counter = 0; counter < read_operation->size; counter += 4) {
@@ -49,7 +49,7 @@ ReturnOnFinished:
 int write_no_vsec(struct nnt_device* nnt_device, unsigned int offset,
                   unsigned int data)
 {
-    int error;
+    int error = 0;
 
     if (nnt_device->wo_address) {
             /* write the data to the data register. */
@@ -83,7 +83,7 @@ ReturnOnFinished:
 
 int write_pciconf_no_vsec(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation)
 {
-    int counter;
+    int counter = 0;
     int error = 0;
 
 	for (counter = 0; counter < write_operation->size; counter += 4) {
@@ -102,7 +102,7 @@ ReturnOnFinished:
 int is_wo_gw(struct nnt_device* nnt_device)
 {
 	unsigned int data = 0;
-    int error;
+    int error = 0;
 
     error = pci_write_config_dword(nnt_device->pci_device, nnt_device->pciconf_device.address_register,
                                    NNT_DEVICE_ID_OFFSET);
