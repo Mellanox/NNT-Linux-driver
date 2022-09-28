@@ -28,7 +28,7 @@ struct mst_hdr {
 
 #define PCICONF_INIT _IOC(_IOC_NONE,PCICONF_MAGIC,0,sizeof(struct mst_pciconf_init_st))
 struct mst_pciconf_init_st {
-        int          domain;
+        unsigned int domain;
         unsigned int bus;
         unsigned int devfn;
   /* Byte offsets in configuration space */

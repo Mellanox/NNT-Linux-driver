@@ -6,7 +6,7 @@
 
 #define PCI_INIT _IOC(_IOC_NONE,PCI_MAGIC,0,sizeof(struct mst_pci_init_st))
 struct mst_pci_init_st {
-	int          domain;
+	unsigned int domain;
 	unsigned int bus;
 	unsigned int devfn;
 	int bar;

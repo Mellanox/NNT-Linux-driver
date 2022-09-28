@@ -26,9 +26,6 @@
 #define MST_BC_BUFFER_SIZE          256
 #define MST_BC_MAX_MINOR            256
 
-static struct pci_device_id pci_conf_devices[];
-static struct pci_device_id livefish_pci_devices[];
-static struct pci_device_id bar_pci_devices[];
 
 struct nnt_dma_page {
     struct page** page_list;
@@ -88,6 +85,13 @@ struct nnt_device_memory {
 };
 
 
+struct nnt_device_dbdf {
+    unsigned int domain;
+    unsigned int bus;
+    unsigned int devfn;
+};
+
+
 struct nnt_device {
     struct nnt_device_pciconf pciconf_device;
     struct nnt_device_memory memory_device;
@@ -98,10 +102,12 @@ struct nnt_device {
     struct list_head entry;
     struct cdev mcdev;
     struct mutex lock;
+    struct nnt_device_dbdf dbdf;
     enum nnt_device_type device_type;
     int vpd_capability_address;
     int wo_address;
     int buffer_used_bc;
+    int device_enabled;
     char device_name[NNT_NAME_SIZE];
     char buffer_bc[MST_BC_BUFFER_SIZE];
     dev_t device_number;
