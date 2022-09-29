@@ -122,8 +122,8 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
             PCI_SLOT(pci_device->devfn), PCI_FUNC(pci_device->devfn),
             (device_type == NNT_PCICONF) ? NNTFLINT_PCICONF_DEVICE_NAME : NNTFLINT_MEMORY_DEVICE_NAME);
 
-    nnt_error("MSTFlint device name created: id: %d, slot id: %d, device name: %s\n",pci_device->device,
-              PCI_FUNC(pci_device->devfn), nnt_dev->device_name);
+    nnt_debug("MSTFlint device name created: id: %d, slot id: %d\n",pci_device->device,
+              PCI_FUNC(pci_device->devfn));
 
     return 0;
 }
@@ -138,7 +138,7 @@ int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
 
-    nnt_error("MFT device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
+    nnt_debug("MFT device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
               PCI_FUNC(pci_device->devfn), nnt_dev->device_name, pci_domain_nr(pci_device->bus), pci_device->bus->number);
 
     return 0;
