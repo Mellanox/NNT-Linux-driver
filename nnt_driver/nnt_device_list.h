@@ -15,6 +15,8 @@ static struct pci_device_id pciconf_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4125) },  /* ConnectX-6DX   */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4127) },  /* ConnectX-6LX   */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4129) },  /* ConnectX-7     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 6518) },  /* Schrodinger    */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 6521) },  /* Freysa         */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 4131) },  /* ConnectX-8     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41682) }, /* BlueField      */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 41686) }, /* BlueField 2    */
