@@ -510,7 +510,7 @@ int destroy_nnt_device_bc(struct nnt_device* nnt_device)
                     (current_function == PCI_FUNC(nnt_device->dbdf.devfn)) && (current_nnt_device->dbdf.domain == nnt_device->dbdf.domain)) {
                     /* Character device is no longer, it must be properly disabled. */
                     current_nnt_device->device_enabled = false;
-                    nnt_error("Device removed: domain: %d, bus: %d, device:%d, function:%d \n",
+                    nnt_debug("Device removed: domain: %d, bus: %d, device:%d, function:%d \n",
                               current_nnt_device->dbdf.domain, current_nnt_device->dbdf.bus,
                               current_device, current_function);
                     return 0;
