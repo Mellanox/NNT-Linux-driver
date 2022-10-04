@@ -31,6 +31,7 @@ static struct pci_device_id pciconf_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53100) }, /* Spectrum 2     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53104) }, /* Spectrum 3     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53120) }, /* Spectrum 4     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 10496) }, /* GB-100         */
         { 0, }
 };
 
@@ -86,6 +87,7 @@ static struct pci_device_id bar_pci_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53100) }, /* Spectrum 2     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53104) }, /* Spectrum 3     */
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 53120) }, /* Spectrum 4     */
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, 10496) }, /* GB-100         */
         { 0, }
 };
 
