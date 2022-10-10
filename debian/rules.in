@@ -66,7 +66,7 @@ ifneq ($(WITH_DKMS),1)
 	cp mst_backward_compatibility/mst_pciconf/mst_pciconf.ko	debian/$(pdkms)/lib/modules/$(kernelver)/$(INSTALL_MOD_DIR)
 ifneq "$(findstring ppc64, $(cpu_arch))" ""
 	mkdir -p debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
-	cp mst_backward_compatibility/mst_ppc/mst_ppc_pci_reset.ko debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
+	cp ./mst_backward_compatibility/mst_ppc/mst_ppc_pci_reset.ko debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
 endif
 ifeq ($(WITH_MOD_SIGN),1)
 	tools/sign-modules $(INSTALL_MOD_PATH)/lib/modules/ $(kernel_source_dir)
