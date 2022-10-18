@@ -378,7 +378,7 @@ struct file_operations fop = {
 static int __init mst_pci_init_module(void)
 {
     dev_t device_number = -1;
-    int is_mft_package = 1;
+    int is_alloc_chrdev_region = 0;
     int error = 0;
     
     /* Allocate char driver region and assign major number */
@@ -390,7 +390,7 @@ static int __init mst_pci_init_module(void)
 	}
 
     /* Create device files for MFT. */
-    error = create_nnt_devices(device_number, is_mft_package,
+    error = create_nnt_devices(device_number, is_alloc_chrdev_region,
                                &fop, NNT_PCI_DEVICES_FLAG);
    
     return error;
@@ -401,7 +401,9 @@ static int __init mst_pci_init_module(void)
 
 static void __exit mst_pci_cleanup_module(void)
 {
-    destroy_nnt_devices();
+    int is_alloc_chrdev_region = 0;
+
+    destroy_nnt_devices(is_alloc_chrdev_region);
     unregister_chrdev(major_number, name);
 }
 

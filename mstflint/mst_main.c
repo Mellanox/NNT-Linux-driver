@@ -574,8 +574,7 @@ static int __init mstflint_init_module(void)
 {
     int first_minor_number = 0;
     int error = 0;
-    int mft_package = 0;
-    dev_t device_numbers;
+    int is_alloc_chrdev_region = 1;
 
     /* Get the amount of the Nvidia devices. */
     if((nnt_driver_info.contiguous_device_numbers =
@@ -586,13 +585,11 @@ static int __init mstflint_init_module(void)
 
     /* Allocate char driver region and assign major number */
     if((error =
-            alloc_chrdev_region(&device_numbers, first_minor_number,
+            alloc_chrdev_region(&nnt_driver_info.device_number, first_minor_number,
                                 nnt_driver_info.contiguous_device_numbers, name)) != 0) {
                 nnt_error("failed to allocate chrdev_region\n");
                 goto CharDeviceAllocated;
     }
-
-    nnt_driver_info.driver_major_number = MAJOR(device_numbers);
 
     /* create sysfs class. */
     if ((nnt_driver_info.class_driver =
@@ -604,17 +601,17 @@ static int __init mstflint_init_module(void)
 
     /* Create device files for MSTflint. */
     if((error =
-            create_nnt_devices(device_numbers, mft_package,
+            create_nnt_devices(nnt_driver_info.device_number, is_alloc_chrdev_region,
                                &fop, NNT_ALL_DEVICES_FLAG)) == 0) {
             goto ReturnOnFinished;
     }
 
 DriverClassAllocated:
-    destroy_nnt_devices();
+    destroy_nnt_devices(is_alloc_chrdev_region);
     class_destroy(nnt_driver_info.class_driver);
 
 CharDeviceAllocated:
-    unregister_chrdev_region(nnt_driver_info.driver_major_number, nnt_driver_info.contiguous_device_numbers);
+    unregister_chrdev_region(nnt_driver_info.device_number, nnt_driver_info.contiguous_device_numbers);
 
 ReturnOnFinished:
     return error;
@@ -625,9 +622,11 @@ ReturnOnFinished:
 
 static void __exit mstflint_cleanup_module(void)
 {
-    destroy_nnt_devices();
+    int is_alloc_chrdev_region = 1;
+
+    destroy_nnt_devices(is_alloc_chrdev_region);
     class_destroy(nnt_driver_info.class_driver);
-    unregister_chrdev_region(nnt_driver_info.driver_major_number, nnt_driver_info.contiguous_device_numbers);
+    unregister_chrdev_region(nnt_driver_info.device_number, nnt_driver_info.contiguous_device_numbers);
 }
 
 
