@@ -579,7 +579,6 @@ static int __init mst_pciconf_init_module(void)
 {
     dev_t device_number = -1;
     int is_mft_package = 1;
-    int is_pciconf = 1;
     int error = 0;
     
     /* Allocate char driver region and assign major number */
@@ -592,7 +591,7 @@ static int __init mst_pciconf_init_module(void)
 
     /* Create device files for MFT. */
     error = create_nnt_devices(device_number, is_mft_package,
-                               &fop, is_pciconf);
+                               &fop, NNT_PCICONF_DEVICES_FLAG);
    
     return error;
 }

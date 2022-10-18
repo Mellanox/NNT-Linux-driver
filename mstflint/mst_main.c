@@ -16,8 +16,7 @@ MODULE_DESCRIPTION("NNT Linux driver (NVIDIA® networking tools driver), this is
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct driver_info nnt_driver_info;
-static int major_number = -1;
-static char* name = "mst_pciconf";
+static char* name = "mstflint_access";
 
 #define  INIT               PCICONF_INIT
 #define  STOP               PCICONF_STOP
@@ -37,7 +36,7 @@ static char* name = "mst_pciconf";
                             PCICONF_READ_DWORD_FROM_CONFIG_SPACE
 
 
-static int mst_pciconf_bc_open(struct inode* inode, struct file* file)
+static int mstflint_bc_open(struct inode* inode, struct file* file)
 {
     if (file->private_data) {
             return 0;
@@ -49,8 +48,8 @@ static int mst_pciconf_bc_open(struct inode* inode, struct file* file)
 }
 
 
-static ssize_t mst_pciconf_bc_read(struct file* file, char* buf,
-                                   size_t count, loff_t* f_pos)
+static ssize_t mstflint_bc_read(struct file* file, char* buf,
+                                size_t count, loff_t* f_pos)
 {
     struct nnt_device* nnt_device = NULL;
     int error;
@@ -87,8 +86,8 @@ ReturnOnFinished:
 }
 
 
-static ssize_t mst_pciconf_bc_write(struct file* file, const char* buf,
-                                    size_t count, loff_t* f_pos)
+static ssize_t mstflint_bc_write(struct file* file, const char* buf,
+                                 size_t count, loff_t* f_pos)
 {
     struct nnt_device* nnt_device = NULL;
     int error;
@@ -564,43 +563,73 @@ ReturnOnFinished:
 
 struct file_operations fop = {
         .unlocked_ioctl = ioctl,
-        .open = mst_pciconf_bc_open,
-        .write = mst_pciconf_bc_write,
-        .read = mst_pciconf_bc_read,
+        .open = mstflint_bc_open,
+        .write = mstflint_bc_write,
+        .read = mstflint_bc_read,
         .owner = THIS_MODULE
 };
 
 
-static int __init mst_pciconf_init_module(void)
+static int __init mstflint_init_module(void)
 {
-    dev_t device_number = -1;
-    int is_mft_package = 1;
-    int is_pciconf = 1;
+    int first_minor_number = 0;
     int error = 0;
-    
-    /* Allocate char driver region and assign major number */
-    major_number = register_chrdev(0, name,
-                                   &fop);
-	if (major_number <=0 ) {
-		nnt_error("Unable to register character mst pciconf driver.\n");
-		error = -EINVAL;
-	}
+    int mft_package = 0;
+    dev_t device_numbers;
 
-    /* Create device files for MFT. */
-    error = create_nnt_devices(device_number, is_mft_package,
-                               &fop, is_pciconf);
-   
+    /* Get the amount of the Nvidia devices. */
+    if((nnt_driver_info.contiguous_device_numbers =
+            get_amount_of_nvidia_devices()) == 0) {
+                nnt_error("No devices found\n");
+                goto ReturnOnFinished;
+    }
+
+    /* Allocate char driver region and assign major number */
+    if((error =
+            alloc_chrdev_region(&device_numbers, first_minor_number,
+                                nnt_driver_info.contiguous_device_numbers, name)) != 0) {
+                nnt_error("failed to allocate chrdev_region\n");
+                goto CharDeviceAllocated;
+    }
+
+    nnt_driver_info.driver_major_number = MAJOR(device_numbers);
+
+    /* create sysfs class. */
+    if ((nnt_driver_info.class_driver =
+            class_create(THIS_MODULE, NNT_CLASS_NAME)) == NULL) {
+            nnt_error("Class creation failed\n");
+            error = -EFAULT;
+            goto DriverClassAllocated;
+    }
+
+    /* Create device files for MSTflint. */
+    if((error =
+            create_nnt_devices(device_numbers, mft_package,
+                               &fop, NNT_ALL_DEVICES_FLAG)) == 0) {
+            goto ReturnOnFinished;
+    }
+
+DriverClassAllocated:
+    destroy_nnt_devices();
+    class_destroy(nnt_driver_info.class_driver);
+
+CharDeviceAllocated:
+    unregister_chrdev_region(nnt_driver_info.driver_major_number, nnt_driver_info.contiguous_device_numbers);
+
+ReturnOnFinished:
     return error;
 }
 
 
 
 
-static void __exit mst_pciconf_cleanup_module(void)
+static void __exit mstflint_cleanup_module(void)
 {
-    unregister_chrdev(major_number, name);
+    destroy_nnt_devices();
+    class_destroy(nnt_driver_info.class_driver);
+    unregister_chrdev_region(nnt_driver_info.driver_major_number, nnt_driver_info.contiguous_device_numbers);
 }
 
 
-module_init(mst_pciconf_init_module);
-module_exit(mst_pciconf_cleanup_module);
+module_init(mstflint_init_module);
+module_exit(mstflint_cleanup_module);
