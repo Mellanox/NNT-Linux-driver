@@ -249,8 +249,6 @@ int create_device_file(struct nnt_device* current_nnt_device, dev_t device_numbe
     // Create device with a new minor number.
     current_nnt_device->device_number = MKDEV(major, minor);
     
-    nnt_error("tttttttttttttttttttt= major=%d, minor=%d, device_number=%d, current_nnt_device->device_name=%s\n", major, minor, device_number, current_nnt_device->device_name);
-
     /* Create device node. */
     device = device_create(nnt_driver_info.class_driver, NULL,
                            current_nnt_device->device_number, NULL,
