@@ -40,7 +40,7 @@ extern struct driver_info nnt_driver_info;
 
 
 struct driver_info {
-    int driver_major_number;
+    dev_t device_number;
     int contiguous_device_numbers;
     struct class* class_driver;
 };

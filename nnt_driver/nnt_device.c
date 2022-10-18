@@ -165,7 +165,7 @@ int nnt_device_structure_init(struct nnt_device** nnt_device)
 
 
 int create_nnt_device(struct pci_dev* pci_device, enum nnt_device_type device_type,
-                      int is_mft_package)
+                      int is_alloc_chrdev_region)
 {
     struct nnt_device* nnt_device = NULL;
     int error_code = 0;
@@ -175,18 +175,19 @@ int create_nnt_device(struct pci_dev* pci_device, enum nnt_device_type device_ty
             nnt_device_structure_init(&nnt_device)) != 0)
             goto ReturnOnError;
 
-    if (is_mft_package) {
+    if (is_alloc_chrdev_region) {
+            /* Build the device file name of MSTFlint. */
+            if((error_code =
+                    create_file_name_mstflint(pci_device, nnt_device,
+                                              device_type)) != 0)
+                    goto ReturnOnError;
+    } else {
             /* Build the device file name of MFT. */
             if((error_code =
                     create_file_name_mft(pci_device, nnt_device,
                                          device_type)) != 0)
                     goto ReturnOnError;
-    } else {
-            /* Build the device file name of NNTFlint. */
-            if((error_code =
-                    create_file_name_mstflint(pci_device, nnt_device,
-                                              device_type)) != 0)
-                    goto ReturnOnError;
+
     }
 
     nnt_device->dbdf.bus = pci_device->bus->number;
@@ -229,7 +230,7 @@ int is_memory_device(struct pci_dev* pci_device)
 
 int create_device_file(struct nnt_device* current_nnt_device, dev_t device_number,
                        int minor, struct file_operations* fop,
-                       int is_mft_package)
+                       int is_alloc_chrdev_region)
 {
     int major = MAJOR(device_number);
     struct device* device = NULL;
@@ -242,13 +243,13 @@ int create_device_file(struct nnt_device* current_nnt_device, dev_t device_numbe
     mutex_init(&current_nnt_device->lock);
     current_nnt_device->mcdev.owner = THIS_MODULE;
 
-    if (is_mft_package) {
+    if (!is_alloc_chrdev_region) {
             goto ReturnOnFinished;
     }
 
     // Create device with a new minor number.
     current_nnt_device->device_number = MKDEV(major, minor);
-    
+
     /* Create device node. */
     device = device_create(nnt_driver_info.class_driver, NULL,
                            current_nnt_device->device_number, NULL,
@@ -295,7 +296,7 @@ ReturnOnFinished:
 
 
 int create_devices(dev_t device_number, struct file_operations* fop,
-                   int is_mft_package)
+                   int is_alloc_chrdev_region)
 {
     struct nnt_device* current_nnt_device = NULL;
 	struct nnt_device* temp_nnt_device = NULL;
@@ -308,7 +309,7 @@ int create_devices(dev_t device_number, struct file_operations* fop,
             /* Create the device file. */
             create_device_file(current_nnt_device, device_number,
                                minor, fop,
-                               is_mft_package);
+                               is_alloc_chrdev_region);
             
             /* Members initialization. */
             current_nnt_device->pciconf_device.vendor_specific_capability =
@@ -352,7 +353,7 @@ ReturnOnFinished:
 
 
 
-int create_nnt_devices(dev_t device_number, int is_mft_package,
+int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
                        struct file_operations* fop, int nnt_device_flag)
 {
     struct pci_dev* pci_device = NULL;
@@ -368,7 +369,7 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
                     if (is_pciconf_device(pci_device)) {
                             if ((error_code =
                                     create_nnt_device(pci_device, NNT_PCICONF,
-                                                      is_mft_package)) != 0) {
+                                                      is_alloc_chrdev_region)) != 0) {
                                 nnt_error("Failed to create pci conf device\n");
                                 goto ReturnOnFinished;
                             }
@@ -381,7 +382,7 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
                     if (is_memory_device(pci_device)) {
                             if ((error_code =
                                     create_nnt_device(pci_device, NNT_PCI_MEMORY,
-                                                      is_mft_package)) != 0) {
+                                                      is_alloc_chrdev_region)) != 0) {
                                 nnt_error("Failed to create pci memory device\n");
                                 goto ReturnOnFinished;
                             }
@@ -392,7 +393,7 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
     /* Create the devices. */
     if((error_code =
             create_devices(device_number, fop,
-                           is_mft_package)) != 0) {
+                           is_alloc_chrdev_region)) != 0) {
             return error_code;
     }
 
@@ -457,21 +458,20 @@ void mutex_unlock_nnt(struct file* file)
 
 
 
-void destroy_nnt_devices(void)
+void destroy_nnt_devices(int is_alloc_chrdev_region)
 {
     struct nnt_device* current_nnt_device;
     struct nnt_device* temp_nnt_device;
-
-    /* NNT driver will create the device file
-         once we stop support backward compatibility. */
-    return;
 
     /* free all nnt_devices */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
             /* Character device is no longer, it must be properly destroyed. */
-            cdev_del(&current_nnt_device->mcdev);
-            device_destroy(nnt_driver_info.class_driver, current_nnt_device->device_number);
+            if (is_alloc_chrdev_region) {
+                    cdev_del(&current_nnt_device->mcdev);
+                    device_destroy(nnt_driver_info.class_driver, current_nnt_device->device_number);
+            }
+
             list_del(&current_nnt_device->entry);
             kfree(current_nnt_device);
     }
