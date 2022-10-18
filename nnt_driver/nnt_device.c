@@ -120,10 +120,10 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
     sprintf(nnt_dev->device_name, "%4.4x:%2.2x:%2.2x.%1.1x_%s",
             pci_domain_nr(pci_device->bus), pci_device->bus->number,
             PCI_SLOT(pci_device->devfn), PCI_FUNC(pci_device->devfn),
-            (device_type == NNT_PCICONF) ? NNTFLINT_PCICONF_DEVICE_NAME : NNTFLINT_MEMORY_DEVICE_NAME);
+            (device_type == NNT_PCICONF) ? MSTFLINT_PCICONF_DEVICE_NAME : MSTFLINT_MEMORY_DEVICE_NAME);
 
-    nnt_debug("MSTFlint device name created: id: %d, slot id: %d\n",pci_device->device,
-              PCI_FUNC(pci_device->devfn));
+    nnt_error("MSTFlint device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
+              PCI_FUNC(pci_device->devfn), nnt_dev->device_name, pci_domain_nr(pci_device->bus), pci_device->bus->number);
 
     return 0;
 }
@@ -138,7 +138,7 @@ int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
 
-    nnt_debug("MFT device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
+    nnt_error("MFT device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
               PCI_FUNC(pci_device->devfn), nnt_dev->device_name, pci_domain_nr(pci_device->bus), pci_device->bus->number);
 
     return 0;
@@ -228,7 +228,8 @@ int is_memory_device(struct pci_dev* pci_device)
 
 
 int create_device_file(struct nnt_device* current_nnt_device, dev_t device_number,
-                       int minor, struct file_operations* fop)
+                       int minor, struct file_operations* fop,
+                       int is_mft_package)
 {
     int major = MAJOR(device_number);
     struct device* device = NULL;
@@ -240,10 +241,25 @@ int create_device_file(struct nnt_device* current_nnt_device, dev_t device_numbe
     current_nnt_device->device_number = -1;
     mutex_init(&current_nnt_device->lock);
     current_nnt_device->mcdev.owner = THIS_MODULE;
-    goto ReturnOnFinished;
+
+    if (is_mft_package) {
+            goto ReturnOnFinished;
+    }
 
     // Create device with a new minor number.
     current_nnt_device->device_number = MKDEV(major, minor);
+    
+    nnt_error("tttttttttttttttttttt= major=%d, minor=%d, device_number=%d, current_nnt_device->device_name=%s\n", major, minor, device_number, current_nnt_device->device_name);
+
+    /* Create device node. */
+    device = device_create(nnt_driver_info.class_driver, NULL,
+                           current_nnt_device->device_number, NULL,
+                           current_nnt_device->device_name);
+    if (!device) {
+        nnt_error("Device creation failed\n");
+        error = -EINVAL;
+        goto ReturnOnFinished;
+    }
 
     /* Init new device. */
     cdev_init(&current_nnt_device->mcdev, fop);
@@ -253,16 +269,6 @@ int create_device_file(struct nnt_device* current_nnt_device, dev_t device_numbe
         cdev_add(&current_nnt_device->mcdev, current_nnt_device->device_number,
                  count);
     if (error) {
-        goto ReturnOnFinished;
-    }
-
-    /* Create device node. */
-    device = device_create(nnt_driver_info.class_driver, NULL,
-                      current_nnt_device->device_number, NULL,
-                      current_nnt_device->device_name);
-    if (!device) {
-        nnt_error("Device creation failed\n");
-        error = -EINVAL;
         goto ReturnOnFinished;
     }
 
@@ -290,7 +296,8 @@ ReturnOnFinished:
 }
 
 
-int create_devices(dev_t device_number, struct file_operations* fop)
+int create_devices(dev_t device_number, struct file_operations* fop,
+                   int is_mft_package)
 {
     struct nnt_device* current_nnt_device = NULL;
 	struct nnt_device* temp_nnt_device = NULL;
@@ -302,7 +309,8 @@ int create_devices(dev_t device_number, struct file_operations* fop)
                              &nnt_device_list, entry) {
             /* Create the device file. */
             create_device_file(current_nnt_device, device_number,
-                               minor, fop);
+                               minor, fop,
+                               is_mft_package);
             
             /* Members initialization. */
             current_nnt_device->pciconf_device.vendor_specific_capability =
@@ -347,7 +355,7 @@ ReturnOnFinished:
 
 
 int create_nnt_devices(dev_t device_number, int is_mft_package,
-                       struct file_operations* fop, int is_pciconf)
+                       struct file_operations* fop, int nnt_device_flag)
 {
     struct pci_dev* pci_device = NULL;
     int error_code = 0;
@@ -355,7 +363,9 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
     /* Find all Nvidia PCI devices. */
     while ((pci_device = pci_get_device(NNT_NVIDIA_PCI_VENDOR, PCI_ANY_ID,
                                         pci_device)) != NULL) {
-            if (is_pciconf) {
+
+            if (nnt_device_flag &
+                    (NNT_PCICONF_DEVICES_FLAG || nnt_device_flag & NNT_ALL_DEVICES_FLAG)) {
                     /* Create pciconf device. */
                     if (is_pciconf_device(pci_device)) {
                             if ((error_code =
@@ -365,7 +375,10 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
                                 goto ReturnOnFinished;
                             }
                     }
-            } else {
+            }
+
+            if (nnt_device_flag &
+                    (NNT_PCI_DEVICES_FLAG || nnt_device_flag & NNT_ALL_DEVICES_FLAG)) {
                     /* Create pci memory device. */
                     if (is_memory_device(pci_device)) {
                             if ((error_code =
@@ -380,7 +393,8 @@ int create_nnt_devices(dev_t device_number, int is_mft_package,
 
     /* Create the devices. */
     if((error_code =
-            create_devices(device_number, fop)) != 0) {
+            create_devices(device_number, fop,
+                           is_mft_package)) != 0) {
             return error_code;
     }
 

@@ -18,10 +18,15 @@
 #define NNT_MEMORY_SIZE				1024 * 1024
 #define VSEC_CAPABILITY_ADDRESS     0x9
 
-#define NNTFLINT_PCICONF_DEVICE_NAME    "nntconf"
-#define NNTFLINT_MEMORY_DEVICE_NAME     "nntcr"
+#define MSTFLINT_PCICONF_DEVICE_NAME    "mstconf"
+#define MSTFLINT_MEMORY_DEVICE_NAME     "mstcr"
 #define MFT_PCICONF_DEVICE_NAME         "pciconf"    
 #define MFT_MEMORY_DEVICE_NAME          "pci_cr"
+
+
+#define NNT_PCICONF_DEVICES_FLAG    0x1
+#define NNT_PCI_DEVICES_FLAG        0X2
+#define NNT_ALL_DEVICES_FLAG        0x3
 
 #define MST_BC_BUFFER_SIZE          256
 #define MST_BC_MAX_MINOR            256
