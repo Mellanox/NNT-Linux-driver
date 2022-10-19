@@ -363,8 +363,7 @@ int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
     while ((pci_device = pci_get_device(NNT_NVIDIA_PCI_VENDOR, PCI_ANY_ID,
                                         pci_device)) != NULL) {
 
-            if (nnt_device_flag &
-                    (NNT_PCICONF_DEVICES_FLAG || nnt_device_flag & NNT_ALL_DEVICES_FLAG)) {
+            if ((nnt_device_flag & NNT_PCICONF_DEVICES_FLAG) || (nnt_device_flag & NNT_ALL_DEVICES_FLAG)) {
                     /* Create pciconf device. */
                     if (is_pciconf_device(pci_device)) {
                             if ((error_code =
@@ -376,8 +375,7 @@ int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
                     }
             }
 
-            if (nnt_device_flag &
-                    (NNT_PCI_DEVICES_FLAG || nnt_device_flag & NNT_ALL_DEVICES_FLAG)) {
+            if ((nnt_device_flag & NNT_PCI_DEVICES_FLAG) || (nnt_device_flag & NNT_ALL_DEVICES_FLAG)) {
                     /* Create pci memory device. */
                     if (is_memory_device(pci_device)) {
                             if ((error_code =
