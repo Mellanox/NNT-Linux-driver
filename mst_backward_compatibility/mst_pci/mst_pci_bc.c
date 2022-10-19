@@ -65,6 +65,8 @@ static ssize_t mst_pci_bc_read(struct file* file, char* buf,
     } else {
         buffer = nnt_device->buffer_bc;
         buffer_used = &nnt_device->buffer_used_bc;
+        error = mutex_lock_nnt(file);
+        CHECK_ERROR(error);
     }
 
 	if (*f_pos >= *buffer_used) {
@@ -88,6 +90,7 @@ MutexUnlock:
             mutex_unlock_nnt(file);
     }
 
+ReturnOnFinished:
 	return count;
 }
 
@@ -113,6 +116,8 @@ static ssize_t mst_pci_bc_write(struct file* file, const char* buf,
     } else {
             buffer = nnt_device->buffer_bc;
             buffer_used = &nnt_device->buffer_used_bc;
+            error = mutex_lock_nnt(file);
+            CHECK_ERROR(error);
     }
 
 	if (*f_pos >= MST_BC_BUFFER_SIZE) {
@@ -136,7 +141,11 @@ static ssize_t mst_pci_bc_write(struct file* file, const char* buf,
     }
 
 MutexUnlock:
-    mutex_unlock_nnt(file);
+    if (nnt_device) {
+            mutex_unlock_nnt(file);
+    }
+
+ReturnOnFinished:
 	return count;
 }
 
