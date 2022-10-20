@@ -602,7 +602,7 @@ static int __init mstflint_init_module(void)
     /* Create device files for MSTflint. */
     if((error =
             create_nnt_devices(nnt_driver_info.device_number, is_alloc_chrdev_region,
-                               &fop, NNT_ALL_DEVICES_FLAG)) == 0) {
+                               &fop, NNT_ALL_DEVICES)) == 0) {
             goto ReturnOnFinished;
     }
 

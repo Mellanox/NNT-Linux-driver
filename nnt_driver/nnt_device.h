@@ -7,7 +7,7 @@
 
 
 int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
-                       struct file_operations* fop, int nnt_device_flag);
+                       struct file_operations* fop, enum nnt_device_type_flag nnt_device_flag);
 void destroy_nnt_devices(int is_alloc_chrdev_region);
 void destroy_nnt_devices_bc(void);
 int destroy_nnt_device_bc(struct nnt_device* nnt_device);
