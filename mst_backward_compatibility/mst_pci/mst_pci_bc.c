@@ -400,7 +400,7 @@ static int __init mst_pci_init_module(void)
 
     /* Create device files for MFT. */
     error = create_nnt_devices(device_number, is_alloc_chrdev_region,
-                               &fop, NNT_PCI_DEVICES_FLAG);
+                               &fop, NNT_PCI_DEVICES);
    
     return error;
 }

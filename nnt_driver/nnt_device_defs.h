@@ -23,14 +23,15 @@
 #define MFT_PCICONF_DEVICE_NAME         "pciconf"    
 #define MFT_MEMORY_DEVICE_NAME          "pci_cr"
 
-
-#define NNT_PCICONF_DEVICES_FLAG    0x1
-#define NNT_PCI_DEVICES_FLAG        0X2
-#define NNT_ALL_DEVICES_FLAG        0x3
-
 #define MST_BC_BUFFER_SIZE          256
 #define MST_BC_MAX_MINOR            256
 
+
+enum nnt_device_type_flag {
+    NNT_PCICONF_DEVICES = 0x01,
+    NNT_PCI_DEVICES,
+    NNT_ALL_DEVICES
+};
 
 struct nnt_dma_page {
     struct page** page_list;
