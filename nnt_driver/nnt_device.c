@@ -4,7 +4,6 @@
 #include "nnt_pci_conf_access.h"
 #include "nnt_pci_conf_access_no_vsec.h"
 #include "nnt_memory_access.h"
-#include "nnt_device_list.h"
 #include <linux/module.h>
 
 
@@ -210,24 +209,6 @@ ReturnOnError:
 }
 
 
-
-
-int is_pciconf_device(struct pci_dev* pci_device)
-{
-    return (pci_match_id(pciconf_devices, pci_device) ||
-            pci_match_id(livefish_pci_devices, pci_device));
-}
-
-
-
-
-int is_memory_device(struct pci_dev* pci_device)
-{
-    return (pci_match_id(bar_pci_devices, pci_device) &&
-            !pci_match_id(livefish_pci_devices, pci_device));
-}
-
-
 int create_device_file(struct nnt_device* current_nnt_device, dev_t device_number,
                        int minor, struct file_operations* fop,
                        int is_alloc_chrdev_region)
@@ -364,27 +345,23 @@ int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
                                         pci_device)) != NULL) {
 
             if ((nnt_device_flag == NNT_PCICONF_DEVICES) || (nnt_device_flag == NNT_ALL_DEVICES)) {
-                    /* Create pciconf device. */
-                    if (is_pciconf_device(pci_device)) {
-                            if ((error_code =
-                                    create_nnt_device(pci_device, NNT_PCICONF,
-                                                      is_alloc_chrdev_region)) != 0) {
-                                nnt_error("Failed to create pci conf device\n");
-                                goto ReturnOnFinished;
-                            }
-                    }
+                /* Create pciconf device. */
+                if ((error_code =
+                        create_nnt_device(pci_device, NNT_PCICONF,
+                                        is_alloc_chrdev_region)) != 0) {
+                        nnt_error("Failed to create pci conf device\n");
+                        goto ReturnOnFinished;
+                }
             }
 
             if ((nnt_device_flag == NNT_PCI_DEVICES) || (nnt_device_flag == NNT_ALL_DEVICES)) {
-                    /* Create pci memory device. */
-                    if (is_memory_device(pci_device)) {
-                            if ((error_code =
-                                    create_nnt_device(pci_device, NNT_PCI_MEMORY,
-                                                      is_alloc_chrdev_region)) != 0) {
-                                nnt_error("Failed to create pci memory device\n");
-                                goto ReturnOnFinished;
-                            }
-                    }
+                /* Create pci memory device. */
+                if ((error_code =
+                        create_nnt_device(pci_device, NNT_PCI_MEMORY,
+                                        is_alloc_chrdev_region)) != 0) {
+                        nnt_error("Failed to create pci memory device\n");
+                        goto ReturnOnFinished;
+                }
             }
     }
 
@@ -412,9 +389,7 @@ int get_amount_of_nvidia_devices(void)
     /* Find all Nvidia PCI devices. */
     while ((pci_device = pci_get_device(NNT_NVIDIA_PCI_VENDOR, PCI_ANY_ID,
                                   pci_device)) != NULL) {
-            if (is_memory_device(pci_device) || is_pciconf_device(pci_device)) {
                 contiguous_device_numbers++;
-            }
     }
 
     return contiguous_device_numbers;
