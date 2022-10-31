@@ -31,7 +31,7 @@ int read_memory(struct nnt_device* nnt_device, struct nnt_rw_operation* read_ope
 }
 
 
-int init_memory(void* user_buffer, struct nnt_device* nnt_device)
+int init_memory(struct nnt_device* nnt_device)
 {
     nnt_device->memory_device.connectx_wa_slot_p1 = 0;
     nnt_device->memory_device.hardware_memory_address =

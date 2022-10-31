@@ -123,7 +123,7 @@ ReturnOnFinished:
 }
 
 
-int init_pciconf_no_vsec(void* user_buffer, struct nnt_device* nnt_device)
+int init_pciconf_no_vsec(struct nnt_device* nnt_device)
 {
     nnt_device->pciconf_device.address_register = NNT_CONF_ADDRES_REGISETER;
     nnt_device->pciconf_device.data_register = NNT_CONF_DATA_REGISTER;
