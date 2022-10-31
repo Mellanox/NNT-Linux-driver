@@ -39,7 +39,7 @@ void set_private_data_open(struct file* file)
     /* Set private data to nnt structure. */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
-            if ((minor == current_nnt_device->device_number) &&
+            if ((minor == current_nnt_device->device_minor_number) &&
                     current_nnt_device->device_enabled) {
                     file->private_data = current_nnt_device;
                     return;
@@ -78,7 +78,7 @@ int set_private_data_bc(struct file* file, unsigned int bus,
 
             if ((current_nnt_device->dbdf.bus == bus) && (current_device == PCI_SLOT(devfn)) &&
                     (current_function == PCI_FUNC(devfn)) && (current_nnt_device->dbdf.domain == domain)) {
-                    current_nnt_device->device_number = minor;
+                    current_nnt_device->device_minor_number = minor;
                     current_nnt_device->device_enabled = true;
                     file->private_data = current_nnt_device;
                     return 0;
@@ -100,7 +100,7 @@ int set_private_data(struct file* file)
     /* Set private data to nnt structure. */
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
-            if (MINOR(current_nnt_device->device_number) == minor) {
+            if (current_nnt_device->device_minor_number == minor) {
                     file->private_data = current_nnt_device;
                     return 0;
             }
@@ -122,7 +122,7 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
             PCI_SLOT(pci_device->devfn), PCI_FUNC(pci_device->devfn),
             (device_type == NNT_PCICONF) ? MSTFLINT_PCICONF_DEVICE_NAME : MSTFLINT_MEMORY_DEVICE_NAME);
 
-    nnt_error("MSTFlint device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
+    nnt_error("MSTFlint device name created: id: %d, slot id: %d, device name: /dev/%s domain: 0x%x bus: 0x%x\n",pci_device->device,
               PCI_FUNC(pci_device->devfn), nnt_dev->device_name, pci_domain_nr(pci_device->bus), pci_device->bus->number);
 
     return 0;
@@ -133,12 +133,12 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
 int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
                          enum nnt_device_type device_type)
 {
-    sprintf(nnt_dev->device_name, "/dev/mst/mt%d_%s%1.1x",
+    sprintf(nnt_dev->device_name, "mst/mt%d_%s%1.1x",
             pci_device->device,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
 
-    nnt_error("MFT device name created: id: %d, slot id: %d, device name: %s domain: 0x%x bus: 0x%x\n",pci_device->device,
+    nnt_error("MFT device name created: id: %d, slot id: %d, device name: /dev/%s domain: 0x%x bus: 0x%x\n",pci_device->device,
               PCI_FUNC(pci_device->devfn), nnt_dev->device_name, pci_domain_nr(pci_device->bus), pci_device->bus->number);
 
     return 0;
@@ -232,23 +232,28 @@ int create_device_file(struct nnt_device* current_nnt_device, dev_t device_numbe
                        int minor, struct file_operations* fop,
                        int is_alloc_chrdev_region)
 {
-    int major = MAJOR(device_number);
     struct device* device = NULL;
     int error = 0;
     int count = 1;
 
     /* NNT driver will create the device file
          once we stop support backward compatibility. */
-    current_nnt_device->device_number = -1;
-    mutex_init(&current_nnt_device->lock);
+    current_nnt_device->device_minor_number = -1;
+    current_nnt_device->device_number = device_number;
     current_nnt_device->mcdev.owner = THIS_MODULE;
+
+    mutex_init(&current_nnt_device->lock);
 
     if (!is_alloc_chrdev_region) {
             goto ReturnOnFinished;
     }
 
     // Create device with a new minor number.
-    current_nnt_device->device_number = MKDEV(major, minor);
+    current_nnt_device->device_minor_number = minor;
+    current_nnt_device->device_number = MKDEV(MAJOR(device_number), minor);
+
+    current_nnt_device->device_enabled = true;
+    current_nnt_device->connectx_wa_slot_p1 = 0;
 
     /* Create device node. */
     device = device_create(nnt_driver_info.class_driver, NULL,
@@ -280,7 +285,7 @@ int check_if_vsec_supported(struct nnt_device* nnt_device)
 {
     int error = 0;
 
-    error = nnt_device->access.init(NULL, nnt_device);
+    error = nnt_device->access.init(nnt_device);
     CHECK_ERROR(error);
 
     if (!nnt_device->pciconf_device.vsec_fully_supported) {
@@ -307,9 +312,11 @@ int create_devices(dev_t device_number, struct file_operations* fop,
     list_for_each_entry_safe(current_nnt_device, temp_nnt_device,
                              &nnt_device_list, entry) {
             /* Create the device file. */
-            create_device_file(current_nnt_device, device_number,
-                               minor, fop,
-                               is_alloc_chrdev_region);
+            if((error =
+                    create_device_file(current_nnt_device, device_number,
+                                       minor, fop,
+                                       is_alloc_chrdev_region)) != 0)
+                    goto ReturnOnFinished;
             
             /* Members initialization. */
             current_nnt_device->pciconf_device.vendor_specific_capability =
@@ -343,6 +350,10 @@ int create_devices(dev_t device_number, struct file_operations* fop,
                             break;
             }
 
+            if (is_alloc_chrdev_region) {
+                    error = current_nnt_device->access.init(current_nnt_device);
+            }
+            
             minor++;
     }
 

@@ -200,7 +200,7 @@ static long ioctl(struct file* file, unsigned int command,
                 nnt_device->buffer_used_bc = 0;
             }
 
-            error = nnt_device->access.init((void*)&nnt_init, nnt_device);
+            error = nnt_device->access.init(nnt_device);
             break;
     }
     case WRITE4:

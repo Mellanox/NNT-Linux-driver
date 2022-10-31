@@ -412,7 +412,7 @@ void check_vsec_minimum_support(struct nnt_device* nnt_device)
 }
 
 
-int init_pciconf(void* user_buffer, struct nnt_device* nnt_device)
+int init_pciconf(struct nnt_device* nnt_device)
 {
     int error = 0;
 

@@ -18,23 +18,6 @@ MODULE_LICENSE("Dual BSD/GPL");
 struct driver_info nnt_driver_info;
 static char* name = "mstflint_access";
 
-#define  INIT               PCICONF_INIT
-#define  STOP               PCICONF_STOP
-#define  READ4              PCICONF_READ4
-#define  READ4_NEW          PCICONF_READ4_NEW
-#define  WRITE4             PCICONF_WRITE4
-#define  WRITE4_NEW         PCICONF_WRITE4_NEW
-#define  MODIFY             PCICONF_MODIFY
-#define  READ4_BUFFER       PCICONF_READ4_BUFFER
-#define  READ4_BUFFER_EX    PCICONF_READ4_BUFFER_EX
-#define  WRITE4_BUFFER      PCICONF_WRITE4_BUFFER
-#define  MST_PARAMS         PCICONF_MST_PARAMS
-#define  MST_META_DATA      PCICONF_MST_META_DATA
-#define  GET_DMA_PAGES      PCICONF_GET_DMA_PAGES
-#define  RELEASE_DMA_PAGES  PCICONF_RELEASE_DMA_PAGES
-#define  READ_DWORD_FROM_CONFIG_SPACE \
-                            PCICONF_READ_DWORD_FROM_CONFIG_SPACE
-
 
 static int mstflint_bc_open(struct inode* inode, struct file* file)
 {
@@ -48,84 +31,39 @@ static int mstflint_bc_open(struct inode* inode, struct file* file)
 }
 
 
-static ssize_t mstflint_bc_read(struct file* file, char* buf,
-                                size_t count, loff_t* f_pos)
+
+static int mstflint_release(struct inode* inode, struct file* file)
 {
+    int error = 0;
+    unsigned int slot_mask;
     struct nnt_device* nnt_device = NULL;
-    int error;
+
+    /*
+     * make sure the device is available since it
+     * could be removed by hotplug event
+     * if available grab its lock
+     */
+    error = mutex_lock_nnt(file);
+    CHECK_ERROR(error);
 
     /* Get the nnt device structure */
     error = get_nnt_device(file, &nnt_device);
     if (error) {
-            count = -EFAULT;
             goto ReturnOnFinished;
     }
+    
+    slot_mask = ~(1 << (nnt_device->connectx_wa_slot_p1 - 1));
+    nnt_device->connectx_wa_slots &= slot_mask;
 
-    error = mutex_lock_nnt(file);
+    nnt_device->connectx_wa_slot_p1 = 0;
 
-	if (*f_pos >= nnt_device->buffer_used_bc) {
-		    count = 0;
-		    goto MutexUnlock;
-	}
-
-	if (*f_pos + count > nnt_device->buffer_used_bc) {
-		    count = nnt_device->buffer_used_bc - *f_pos;
-    }
-
-	if (copy_to_user(buf,nnt_device->buffer_bc + *f_pos, count)) {
-		    count = -EFAULT;
-		    goto MutexUnlock;
-	}
-
-	*f_pos += count;
-
-MutexUnlock:
-    mutex_unlock_nnt(file);
 ReturnOnFinished:
-	return count;
+    mutex_unlock_nnt(file);
+
+    return error;
 }
 
 
-static ssize_t mstflint_bc_write(struct file* file, const char* buf,
-                                 size_t count, loff_t* f_pos)
-{
-    struct nnt_device* nnt_device = NULL;
-    int error;
-
-    /* Get the nnt device structure */
-    error = get_nnt_device(file, &nnt_device);
-    if (error) {
-            count = -EFAULT;
-            goto ReturnOnFinished;
-    }
-
-    error = mutex_lock_nnt(file);
-
-	if (*f_pos >= MST_BC_BUFFER_SIZE) {
-		    count = 0;
-		    goto MutexUnlock;
-	}
-
-	if (*f_pos + count > MST_BC_BUFFER_SIZE) {
-		    count = MST_BC_BUFFER_SIZE - *f_pos;
-    }
-
-	if (copy_from_user(nnt_device->buffer_bc + *f_pos, buf, count)) {
-		    count = -EFAULT;
-		    goto MutexUnlock;
-	}
-
-	*f_pos += count;
-
-	if (nnt_device->buffer_used_bc < *f_pos) {
-            nnt_device->buffer_used_bc = *f_pos;
-    }
-
-MutexUnlock:
-    mutex_unlock_nnt(file);
-ReturnOnFinished:
-	return count;
-}
 
 static long ioctl(struct file* file, unsigned int command,
                   unsigned long argument)
@@ -149,409 +87,309 @@ static long ioctl(struct file* file, unsigned int command,
                     return -EPERM;
             }
     }
+    error = mutex_lock_nnt(file);
+    CHECK_ERROR(error);
 
-    if (command != INIT) {
-            error = mutex_lock_nnt(file);
-            CHECK_ERROR(error);
-
-            /* Get the nnt device structure */
-            error = get_nnt_device(file, &nnt_device);
-            if (error) {
-                    goto ReturnOnFinished;
-            }
-    }
-
-    switch (command) {
-    case INIT:
-    {
-            struct nnt_pciconf_init nnt_init;
-            struct mst_pciconf_init_st mst_init;
-            struct nnt_device* nnt_device = NULL;
-
-            if (copy_from_user(&mst_init, user_buffer,
-                               sizeof(struct mst_pciconf_init_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            error = set_private_data_bc(file, mst_init.bus,
-                                        PCI_SLOT(mst_init.devfn), PCI_FUNC(mst_init.devfn));
-            if (error) {
-                goto ReturnOnFinished;
-            }
-
-            error = mutex_lock_nnt(file);
-            CHECK_ERROR(error);
-
-            /* Get the nnt device structure */
-            error = get_nnt_device(file, &nnt_device);
-            if (error) {
-                    goto ReturnOnFinished;
-            }
-                
-            nnt_init.address_register = mst_init.addr_reg;
-	        nnt_init.address_data_register = mst_init.data_reg;
-
-            /* Truncate to 0 length on open for writing. */
-            if (file->f_flags & O_APPEND) {
-                file->f_pos = nnt_device->buffer_used_bc;
-            } else if ( (file->f_flags & O_TRUNC) || (file->f_flags & O_WRONLY ) ) {
-                nnt_device->buffer_used_bc = 0;
-            }
-
-            error = nnt_device->access.init((void*)&nnt_init, nnt_device);
-            break;
-    }
-    case WRITE4:
-    {
-            struct nnt_rw_operation rw_operation;
-            struct mst_write4_st mst_write;
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_write, user_buffer,
-                               sizeof(struct mst_write4_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-            rw_operation.data[0] = mst_write.data;
-            rw_operation.offset = mst_write.offset;
-            rw_operation.size = 4;
-
-            error = nnt_device->access.write(nnt_device, &rw_operation);
-
-            break;
-    }
-    case WRITE4_NEW:
-    {
-            struct nnt_rw_operation rw_operation;
-            struct mst_write4_new_st mst_write;
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_write, user_buffer,
-                               sizeof(struct mst_write4_new_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            rw_operation.data[0] = mst_write.data;
-            rw_operation.offset = mst_write.offset;
-            rw_operation.address_space = mst_write.address_space;
-            rw_operation.size = 4;
-
-            error = nnt_device->access.write(nnt_device, &rw_operation);
-
-            break;
-    }
-    case WRITE4_BUFFER:
-    {
-            struct mst_write4_buffer_st mst_write;
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_write, user_buffer, sizeof(struct mst_write4_buffer_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            error = nnt_device->access.write(nnt_device, (struct nnt_rw_operation*)&mst_write);
-            if (error) {
-                goto ReturnOnFinished;
-            }
-              
-            /* No error, return the requested data length. */
-            error = mst_write.size;
-
-            break;
-    }
-    case READ4:
-    {
-            struct nnt_rw_operation rw_operation;
-            struct mst_read4_st mst_read;
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_read, user_buffer,
-                               sizeof(struct mst_read4_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            rw_operation.offset = mst_read.offset;
-            rw_operation.size = 4;
-
-            error = nnt_device->access.read(nnt_device, &rw_operation);
-            if (error) {
-                goto ReturnOnFinished;
-            }
-
-            mst_read.data = rw_operation.data[0];
-              
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &mst_read,
-                        sizeof(struct mst_read4_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-        break;
-    }
-    case READ4_NEW:
-    {
-            struct nnt_rw_operation rw_operation;
-            struct mst_read4_new_st mst_read;
-            
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_read, user_buffer,
-                               sizeof(struct mst_read4_new_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            rw_operation.offset = mst_read.offset;
-            rw_operation.address_space = mst_read.address_space;
-            rw_operation.size = 4;
-            error = nnt_device->access.read(nnt_device, &rw_operation);
-            if (error) {
-                goto ReturnOnFinished;
-            }
-
-            mst_read.data = rw_operation.data[0];
-              
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &mst_read,
-                        sizeof(struct mst_read4_new_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-
-            break;
-    }
-    case READ4_BUFFER_EX:
-    case READ4_BUFFER:
-    {
-            struct mst_read4_buffer_st mst_read;
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_read, user_buffer, sizeof(struct mst_read4_buffer_st))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            error = nnt_device->access.read(nnt_device, (struct nnt_rw_operation*)&mst_read);
-            if (error) {
-                goto ReturnOnFinished;
-            }
-              
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &mst_read,
-                        sizeof(struct mst_read4_buffer_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-
-            /* No error, return the requested data length. */
-            error = mst_read.size;
-
-            break;
-    }
-    case PCICONF_VPD_READ4:
-    {
-            int vpd_default_timeout = 2000;
-            struct mst_vpd_read4_st mst_vpd_read;
-            struct nnt_vpd nnt_vpd;
-
-            if (!nnt_device->vpd_capability_address) {
-                    nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
-                    error = -ENODEV;
-                    goto ReturnOnFinished;
-            }
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_vpd_read, user_buffer,
-                        sizeof(struct mst_vpd_read4_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-
-            nnt_vpd.offset = mst_vpd_read.offset;
-            nnt_vpd.data = mst_vpd_read.data;
-
-            if (!nnt_vpd.timeout) {
-                nnt_vpd.timeout = vpd_default_timeout;
-            }
-
-            error = vpd_read(&nnt_vpd, nnt_device);
-            if (error) {
-                goto ReturnOnFinished;
-            }
-
-            mst_vpd_read.offset = nnt_vpd.offset;
-            mst_vpd_read.data = nnt_vpd.data;
-
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &mst_vpd_read,
-                        sizeof(struct mst_vpd_read4_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-
-            break;
-    }
-    case PCICONF_VPD_WRITE4:
-    {
-            int vpd_default_timeout = 2000;
-            struct mst_vpd_write4_st mst_vpd_write;
-            struct nnt_vpd nnt_vpd;
-
-            if (!nnt_device->vpd_capability_address) {
-                    nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
-                    error = -ENODEV;
-                    goto ReturnOnFinished;
-            }
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&mst_vpd_write, user_buffer,
-                        sizeof(struct mst_vpd_write4_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-
-            nnt_vpd.offset = mst_vpd_write.offset;
-            nnt_vpd.data = mst_vpd_write.data;
-
-            if (!nnt_vpd.timeout) {
-                nnt_vpd.timeout = vpd_default_timeout;
-            }
-
-            error = vpd_write(&nnt_vpd, nnt_device);
-            if (error) {
-                goto ReturnOnFinished;
-            }
-
-            mst_vpd_write.offset = nnt_vpd.offset;
-            mst_vpd_write.data = nnt_vpd.data;
-
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &mst_vpd_write,
-                        sizeof(struct mst_vpd_write4_st)) != 0) {
-                    error = -EFAULT;
-                    goto ReturnOnFinished;
-            }
-
-            break;    
-    }
-    case GET_DMA_PAGES:
-    {
-            error = dma_pages_ioctl(NNT_GET_DMA_PAGES, user_buffer,
-                                    nnt_device);
-            break;
-    }
-    case RELEASE_DMA_PAGES:
-    {
-            error = dma_pages_ioctl(NNT_RELEASE_DMA_PAGES, user_buffer,
-                                    nnt_device);
-            break;
-    }
-    case READ_DWORD_FROM_CONFIG_SPACE:
-    {
-            struct nnt_read_dword_from_config_space nnt_read_from_cspace;
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&nnt_read_from_cspace, user_buffer,
-                               sizeof(struct nnt_read_dword_from_config_space))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            /* Read the dword. */
-            if (read_dword(&nnt_read_from_cspace, nnt_device)) {
-                goto ReturnOnFinished;
-            }
-
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &nnt_read_from_cspace,
-                        sizeof(struct nnt_read_dword_from_config_space)) != 0) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            break;
-    }
-    case MST_META_DATA:
-    {
-            struct mst_meta_data meta_data;
-            struct mst_hdr hdr;
-            memset(&meta_data, 0, sizeof(meta_data));
-
-            /* Copy the request from user space. */
-            if (copy_from_user(&hdr, user_buffer,
-                               sizeof(struct mst_hdr))) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            if (hdr.payload_version_major != MST_META_DATA_VERSION_MAJOR ||
-                    hdr.payload_len < sizeof(meta_data.data)) {
-                error = -EINVAL;
-                goto ReturnOnFinished;
-            }
-            // fill meta_data hdr
-            meta_data.hdr.hdr_version = MST_HDR_VERSION;
-            meta_data.hdr.hdr_len = sizeof(meta_data.hdr);
-            meta_data.hdr.payload_len = sizeof(meta_data.data);
-            meta_data.hdr.payload_version_major = MST_META_DATA_VERSION_MAJOR;
-            meta_data.hdr.payload_version_minor = MST_META_DATA_VERSION_MINOR;
-            // fill payload
-            meta_data.data.api_version_major = MST_API_VERSION_MAJOR;
-            meta_data.data.api_version_minor = MST_API_VERSION_MINOR;
-
-            /* Copy the data to the user space. */
-            if (copy_to_user(user_buffer, &meta_data,
-                        sizeof(meta_data))!= 0) {
-                error = -EFAULT;
-                goto ReturnOnFinished;
-            }
-
-            break;
-    }
-    case MST_PARAMS:
-    {
-        struct nnt_device_parameters nnt_parameters;
-        struct mst_params_st mst_params;
-
-        error = get_nnt_device_parameters(&nnt_parameters, nnt_device);
-        if (error) {
-                goto ReturnOnFinished;
-        }
-
-        mst_params.bus = nnt_parameters.bus;
-        mst_params.bar = 0;
-        mst_params.domain = nnt_parameters.domain;
-        mst_params.func = nnt_parameters.function;
-        mst_params.slot = nnt_parameters.slot;
-        mst_params.device = nnt_parameters.device;
-        mst_params.vendor = nnt_parameters.vendor;
-        mst_params.subsystem_device = nnt_parameters.subsystem_device;
-        mst_params.subsystem_vendor = nnt_parameters.subsystem_vendor;
-        mst_params.vendor_specific_cap = nnt_parameters.vendor_specific_capability;
-        mst_params.multifunction = nnt_parameters.multifunction;
-        mst_params.vsec_cap_mask = nnt_parameters.vsec_capability_mask;
-
-        /* Copy the data to the user space. */
-        if (copy_to_user(user_buffer, &mst_params,
-                    sizeof(struct mst_params_st))!= 0) {
-            error = -EFAULT;
+    /* Get the nnt device structure */
+    error = get_nnt_device(file, &nnt_device);
+    if (error) {
             goto ReturnOnFinished;
-        }
-
-        break;
     }
-    case PCICONF_DMA_PROPS:
-    case PCICONF_MEM_ACCESS:
-    case MODIFY:
-    case STOP:
-            break;
-    default:
-            error = -EINVAL;
-            break;
-                
+
+    switch (command)
+    {
+            case MST_WRITE4:
+            {
+                    struct nnt_rw_operation rw_operation;
+                    struct mst_write4_st mst_write;
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&mst_write, user_buffer,
+                                       sizeof(struct mst_write4_st))) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+                    rw_operation.data[0] = mst_write.data;
+                    rw_operation.offset = mst_write.offset;
+                    rw_operation.size = 4;
+
+                    error = nnt_device->access.write(nnt_device, &rw_operation);
+
+                    break;
+            }
+            case PCICONF_WRITE4_BUFFER:
+            {
+                    struct nnt_rw_operation rw_operation;
+                    struct mst_write4_st mst_write;
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&mst_write, user_buffer,
+                                       sizeof(struct mst_write4_st))) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+
+                    rw_operation.data[0] = mst_write.data;
+                    rw_operation.offset = mst_write.offset;
+                    rw_operation.address_space = mst_write.address_space;
+                    rw_operation.size = 4;
+
+                    error = nnt_device->access.write(nnt_device, &rw_operation);
+
+                    break;
+            }
+            case MST_READ4:
+            {
+                    struct nnt_rw_operation rw_operation;
+                    struct mst_read4_st mst_read;
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&mst_read, user_buffer,
+                                       sizeof(struct mst_read4_st))) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+
+                    rw_operation.offset = mst_read.offset;
+                    rw_operation.size = 4;
+                    rw_operation.address_space = mst_read.address_space;
+
+                    error = nnt_device->access.read(nnt_device, &rw_operation);
+                    if (error) {
+                        goto ReturnOnFinished;
+                    }
+
+                    mst_read.data = rw_operation.data[0];
+                      
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &mst_read,
+                                sizeof(struct mst_read4_st)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+                break;
+            }
+            case PCICONF_READ4_BUFFER:
+            {
+                    struct nnt_rw_operation rw_operation;
+                    struct mst_read4_st mst_read;
+                    
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&mst_read, user_buffer,
+                                       sizeof(struct mst_read4_st))) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+
+                    rw_operation.offset = mst_read.offset;
+                    rw_operation.address_space = mst_read.address_space;
+                    rw_operation.size = 4;
+                    error = nnt_device->access.read(nnt_device, &rw_operation);
+                    if (error) {
+                        goto ReturnOnFinished;
+                    }
+
+                    mst_read.data = rw_operation.data[0];
+                      
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &mst_read,
+                                sizeof(struct mst_read4_st)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    break;
+            }
+            case PCICONF_VPD_READ4:
+            {
+                    int vpd_default_timeout = 2000;
+                    struct mst_vpd_read4_st mst_vpd_read;
+                    struct nnt_vpd nnt_vpd;
+
+                    if (!nnt_device->vpd_capability_address) {
+                            nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
+                            error = -ENODEV;
+                            goto ReturnOnFinished;
+                    }
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&mst_vpd_read, user_buffer,
+                                sizeof(struct mst_vpd_read4_st)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    nnt_vpd.offset = mst_vpd_read.offset;
+                    nnt_vpd.data = mst_vpd_read.data;
+
+                    if (!nnt_vpd.timeout) {
+                        nnt_vpd.timeout = vpd_default_timeout;
+                    }
+
+                    error = vpd_read(&nnt_vpd, nnt_device);
+                    if (error) {
+                        goto ReturnOnFinished;
+                    }
+
+                    mst_vpd_read.offset = nnt_vpd.offset;
+                    mst_vpd_read.data = nnt_vpd.data;
+
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &mst_vpd_read,
+                                sizeof(struct mst_vpd_read4_st)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    break;
+            }
+            case PCICONF_VPD_WRITE4:
+            {
+                    int vpd_default_timeout = 2000;
+                    struct mst_vpd_write4_st mst_vpd_write;
+                    struct nnt_vpd nnt_vpd;
+
+                    if (!nnt_device->vpd_capability_address) {
+                            nnt_error("Device %s not support Vital Product Data\n", nnt_device->device_name);
+                            error = -ENODEV;
+                            goto ReturnOnFinished;
+                    }
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&mst_vpd_write, user_buffer,
+                                sizeof(struct mst_vpd_write4_st)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    nnt_vpd.offset = mst_vpd_write.offset;
+                    nnt_vpd.data = mst_vpd_write.data;
+
+                    if (!nnt_vpd.timeout) {
+                        nnt_vpd.timeout = vpd_default_timeout;
+                    }
+
+                    error = vpd_write(&nnt_vpd, nnt_device);
+                    if (error) {
+                        goto ReturnOnFinished;
+                    }
+
+                    mst_vpd_write.offset = nnt_vpd.offset;
+                    mst_vpd_write.data = nnt_vpd.data;
+
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &mst_vpd_write,
+                                sizeof(struct mst_vpd_write4_st)) != 0) {
+                            error = -EFAULT;
+                            goto ReturnOnFinished;
+                    }
+
+                    break;    
+            }
+            case PCICONF_GET_DMA_PAGES:
+            {
+                    error = dma_pages_ioctl(NNT_GET_DMA_PAGES, user_buffer,
+                                            nnt_device);
+                    break;
+            }
+            case PCICONF_RELEASE_DMA_PAGES:
+            {
+                    error = dma_pages_ioctl(NNT_RELEASE_DMA_PAGES, user_buffer,
+                                            nnt_device);
+                    break;
+            }
+            case PCICONF_READ_DWORD_FROM_CONFIG_SPACE:
+            {
+                    struct nnt_read_dword_from_config_space nnt_read_from_cspace;
+
+                    /* Copy the request from user space. */
+                    if (copy_from_user(&nnt_read_from_cspace, user_buffer,
+                                       sizeof(struct nnt_read_dword_from_config_space))) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+
+                    /* Read the dword. */
+                    if (read_dword(&nnt_read_from_cspace, nnt_device)) {
+                        goto ReturnOnFinished;
+                    }
+
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &nnt_read_from_cspace,
+                                sizeof(struct nnt_read_dword_from_config_space)) != 0) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+
+                    break;
+            }
+            case MST_PARAMS:
+            {
+                    struct nnt_device_parameters nnt_parameters;
+                    struct mst_params mst_params;
+
+                    error = get_nnt_device_parameters(&nnt_parameters, nnt_device);
+                    if (error) {
+                            goto ReturnOnFinished;
+                    }
+
+                    mst_params.bus = nnt_parameters.bus;
+                    mst_params.bar = 0;
+                    mst_params.domain = nnt_parameters.domain;
+                    mst_params.func = nnt_parameters.function;
+                    mst_params.slot = nnt_parameters.slot;
+                    mst_params.device = nnt_parameters.device;
+                    mst_params.vendor = nnt_parameters.vendor;
+                    mst_params.subsystem_device = nnt_parameters.subsystem_device;
+                    mst_params.subsystem_vendor = nnt_parameters.subsystem_vendor;
+                    mst_params.vendor_specific_cap = nnt_parameters.vendor_specific_capability;
+
+                    /* Copy the data to the user space. */
+                    if (copy_to_user(user_buffer, &mst_params,
+                                sizeof(struct mst_params))!= 0) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+
+                    break;
+            }
+            case PCI_CONNECTX_WA:
+	        {
+                    unsigned int slot_mask;
+
+                    /* Slot exists validation. */
+                    if (nnt_device->connectx_wa_slot_p1)
+                    {
+                        nnt_error("slot exits for file %s, slot:0x%x\n", nnt_device->device_name, nnt_device->connectx_wa_slot_p1);
+                        error = -EPERM;
+                        goto ReturnOnFinished;
+                    }
+
+                    /* Find first un(set) bit. and remember the slot. */
+                    nnt_device->connectx_wa_slot_p1 = ffs(~nnt_device->connectx_wa_slots);
+                    if (nnt_device->connectx_wa_slot_p1 == 0 || nnt_device->connectx_wa_slot_p1 > CONNECTX_WA_SIZE)
+                    {
+                        error = -ENOLCK;
+                        goto ReturnOnFinished;
+                    }
+
+                    slot_mask = 1 << (nnt_device->connectx_wa_slot_p1 - 1);
+
+                    /* Set the slot as taken. */
+                    nnt_device->connectx_wa_slots |= slot_mask;
+
+                    if (copy_to_user(user_buffer, &nnt_device->connectx_wa_slot_p1,
+                                     sizeof(unsigned int)) != 0) {
+                        error = -EFAULT;
+                        goto ReturnOnFinished;
+                    }
+                    break;
+
+            }
+            default:
+                    error = -EINVAL;
+                    break;
+                        
     }
 
 ReturnOnFinished:
@@ -564,17 +402,16 @@ ReturnOnFinished:
 struct file_operations fop = {
         .unlocked_ioctl = ioctl,
         .open = mstflint_bc_open,
-        .write = mstflint_bc_write,
-        .read = mstflint_bc_read,
+        .release = mstflint_release,
         .owner = THIS_MODULE
 };
 
 
 static int __init mstflint_init_module(void)
 {
+    int is_alloc_chrdev_region = 1;
     int first_minor_number = 0;
     int error = 0;
-    int is_alloc_chrdev_region = 1;
 
     /* Get the amount of the Nvidia devices. */
     if((nnt_driver_info.contiguous_device_numbers =
@@ -602,7 +439,7 @@ static int __init mstflint_init_module(void)
     /* Create device files for MSTflint. */
     if((error =
             create_nnt_devices(nnt_driver_info.device_number, is_alloc_chrdev_region,
-                               &fop, NNT_ALL_DEVICES)) == 0) {
+                               &fop, NNT_PCICONF_DEVICES)) == 0) {
             goto ReturnOnFinished;
     }
 

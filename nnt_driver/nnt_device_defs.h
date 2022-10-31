@@ -56,7 +56,7 @@ struct supported_address_space {
 struct nnt_device;
 typedef int (*callback_read) (struct nnt_device* nnt_device, struct nnt_rw_operation* read_operation);
 typedef int (*callback_write)(struct nnt_device* nnt_device, struct nnt_rw_operation* write_operation);
-typedef int (*callback_init)(void* user_buffer, struct nnt_device* nnt_device);
+typedef int (*callback_init)(struct nnt_device* nnt_device);
 
 struct nnt_access_callback {
     callback_read read;
@@ -111,11 +111,14 @@ struct nnt_device {
     struct nnt_device_dbdf dbdf;
     enum nnt_device_type device_type;
     int vpd_capability_address;
+    int device_minor_number;
     int wo_address;
     int buffer_used_bc;
     int device_enabled;
     char device_name[NNT_NAME_SIZE];
     char buffer_bc[MST_BC_BUFFER_SIZE];
+    unsigned int connectx_wa_slot_p1;
+    unsigned char connectx_wa_slots;
     dev_t device_number;
 };
 
