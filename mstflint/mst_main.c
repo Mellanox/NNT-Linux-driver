@@ -70,7 +70,7 @@ static long ioctl(struct file* file, unsigned int command,
 {
     void* user_buffer = (void*)argument;
     struct nnt_device* nnt_device = NULL;
-    int error;
+    int error = 0;
 
      /* By convention, any user gets read access
      * and is allowed to use the device.
@@ -98,26 +98,27 @@ static long ioctl(struct file* file, unsigned int command,
 
     switch (command)
     {
-            case MST_WRITE4:
+            case PCICONF_WRITE4_BUFFER:
             {
-                    struct nnt_rw_operation rw_operation;
-                    struct mst_write4_st mst_write;
+                    struct mst_write4_buffer_st mst_write;
 
                     /* Copy the request from user space. */
-                    if (copy_from_user(&mst_write, user_buffer,
-                                       sizeof(struct mst_write4_st))) {
+                    if (copy_from_user(&mst_write, user_buffer, sizeof(struct mst_write4_buffer_st))) {
                         error = -EFAULT;
                         goto ReturnOnFinished;
                     }
-                    rw_operation.data[0] = mst_write.data;
-                    rw_operation.offset = mst_write.offset;
-                    rw_operation.size = 4;
 
-                    error = nnt_device->access.write(nnt_device, &rw_operation);
+                    error = nnt_device->access.write(nnt_device, (struct nnt_rw_operation*)&mst_write);
+                    if (error) {
+                        goto ReturnOnFinished;
+                    }
+                      
+                    /* No error, return the requested data length. */
+                    error = mst_write.size;
 
                     break;
             }
-            case PCICONF_WRITE4_BUFFER:
+            case MST_WRITE4:
             {
                     struct nnt_rw_operation rw_operation;
                     struct mst_write4_st mst_write;
@@ -138,38 +139,32 @@ static long ioctl(struct file* file, unsigned int command,
 
                     break;
             }
-            case MST_READ4:
+            case PCICONF_READ4_BUFFER:
             {
-                    struct nnt_rw_operation rw_operation;
-                    struct mst_read4_st mst_read;
+                    struct mst_read4_buffer_st mst_read;
 
                     /* Copy the request from user space. */
-                    if (copy_from_user(&mst_read, user_buffer,
-                                       sizeof(struct mst_read4_st))) {
+                    if (copy_from_user(&mst_read, user_buffer, sizeof(struct mst_read4_buffer_st))) {
                         error = -EFAULT;
                         goto ReturnOnFinished;
                     }
 
-                    rw_operation.offset = mst_read.offset;
-                    rw_operation.size = 4;
-                    rw_operation.address_space = mst_read.address_space;
-
-                    error = nnt_device->access.read(nnt_device, &rw_operation);
+                    error = nnt_device->access.read(nnt_device, (struct nnt_rw_operation*)&mst_read);
                     if (error) {
                         goto ReturnOnFinished;
                     }
-
-                    mst_read.data = rw_operation.data[0];
                       
                     /* Copy the data to the user space. */
                     if (copy_to_user(user_buffer, &mst_read,
-                                sizeof(struct mst_read4_st)) != 0) {
+                                sizeof(struct mst_read4_buffer_st)) != 0) {
                             error = -EFAULT;
                             goto ReturnOnFinished;
                     }
-                break;
+
+                    /* No error, return the requested data length. */
+                    error = mst_read.size;
             }
-            case PCICONF_READ4_BUFFER:
+            case MST_READ4:
             {
                     struct nnt_rw_operation rw_operation;
                     struct mst_read4_st mst_read;
@@ -387,9 +382,9 @@ static long ioctl(struct file* file, unsigned int command,
 
             }
             default:
+                    nnt_error("Unsupported IOCTL\n");
                     error = -EINVAL;
                     break;
-                        
     }
 
 ReturnOnFinished:
