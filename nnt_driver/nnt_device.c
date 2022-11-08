@@ -209,6 +209,110 @@ ReturnOnError:
 }
 
 
+int check_pci_id_range(unsigned short pci_device_id, unsigned short id_range_start)
+{
+    return (pci_device_id >= id_range_start) && (pci_device_id <= (id_range_start + 100));
+}
+
+
+int is_connectx(unsigned short pci_device_id)
+{
+    return check_pci_id_range(pci_device_id, CONNECTX3_PCI_ID);
+}
+
+
+int is_connectx3(unsigned short pci_device_id)
+{
+    return pci_device_id == CONNECTX3_PCI_ID || pci_device_id == CONNECTX3PRO_PCI_ID;
+}
+
+
+int is_bluefield(unsigned short pci_device_id)
+{
+    return check_pci_id_range(pci_device_id, BLUEFIELD_PCI_ID);
+}
+
+
+int is_pcie_switch(unsigned short pci_device_id)
+{
+    return check_pci_id_range(pci_device_id, SCHRODINGER_PCI_ID);
+}
+
+
+int is_quantum(unsigned short pci_device_id)
+{
+    return check_pci_id_range(pci_device_id, QUANTUM_PCI_ID);
+}
+
+
+int is_spectrum(unsigned short pci_device_id)
+{
+    return (pci_device_id == SPECTRUM_PCI_ID) ||
+           (check_pci_id_range(pci_device_id, SPECTRUM2_PCI_ID));
+}
+
+
+int is_switch_ib(unsigned short pci_device_id)
+{
+    return pci_device_id == SWITCHIB_PCI_ID ||
+           pci_device_id == SWITCHIB2_PCI_ID;
+}
+
+
+int is_gb100(unsigned short pci_device_id)
+{
+    return check_pci_id_range(pci_device_id, GB100_PCI_ID);
+}
+
+
+int is_livefish_device(unsigned short pci_device_id)
+{
+    return pci_device_id >= CONNECTX3_LIVEFISH_ID && pci_device_id < CONNECTX3_PCI_ID;
+}
+
+
+int is_nic(unsigned short pci_device_id)
+{
+    return is_connectx(pci_device_id) ||
+           is_bluefield(pci_device_id);
+}
+
+
+int is_switch(unsigned short pci_device_id)
+{
+    return is_pcie_switch(pci_device_id) ||
+           is_quantum(pci_device_id) ||
+           is_spectrum(pci_device_id) ||
+           is_switch_ib(pci_device_id) ||
+           is_gb100(pci_device_id);
+}
+
+
+int is_toolspf(unsigned short pci_device_id)
+{
+    return is_nic(pci_device_id-4000) ||
+           is_switch(pci_device_id-4000);
+}
+
+
+int is_pciconf_device(unsigned short pci_device_id)
+{
+    return is_nic(pci_device_id) ||
+           is_toolspf(pci_device_id) ||
+           is_livefish_device(pci_device_id) ||
+           is_switch(pci_device_id);
+}
+
+
+int is_pcicr_device(unsigned short pci_device_id)
+{
+    return (is_switch(pci_device_id) ||
+            is_toolspf(pci_device_id) ||
+            is_connectx3(pci_device_id)) &&
+            (!is_livefish_device(pci_device_id));
+}
+
+
 int create_device_file(struct nnt_device* current_nnt_device, dev_t device_number,
                        int minor, struct file_operations* fop,
                        int is_alloc_chrdev_region)
@@ -357,21 +461,25 @@ int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
 
             if ((nnt_device_flag == NNT_PCICONF_DEVICES) || (nnt_device_flag == NNT_ALL_DEVICES)) {
                 /* Create pciconf device. */
-                if ((error_code =
-                        create_nnt_device(pci_device, NNT_PCICONF,
-                                        is_alloc_chrdev_region)) != 0) {
-                        nnt_error("Failed to create pci conf device\n");
-                        goto ReturnOnFinished;
+                if (is_pciconf_device(pci_device->device)) {
+                    if ((error_code =
+                            create_nnt_device(pci_device, NNT_PCICONF,
+                                            is_alloc_chrdev_region)) != 0) {
+                            nnt_error("Failed to create pci conf device\n");
+                            goto ReturnOnFinished;
+                    }
                 }
             }
 
             if ((nnt_device_flag == NNT_PCI_DEVICES) || (nnt_device_flag == NNT_ALL_DEVICES)) {
                 /* Create pci memory device. */
-                if ((error_code =
-                        create_nnt_device(pci_device, NNT_PCI_MEMORY,
-                                        is_alloc_chrdev_region)) != 0) {
-                        nnt_error("Failed to create pci memory device\n");
-                        goto ReturnOnFinished;
+                if (is_pcicr_device(pci_device->device)) {
+                    if ((error_code =
+                            create_nnt_device(pci_device, NNT_PCI_MEMORY,
+                                            is_alloc_chrdev_region)) != 0) {
+                            nnt_error("Failed to create pci memory device\n");
+                            goto ReturnOnFinished;
+                    }
                 }
             }
     }

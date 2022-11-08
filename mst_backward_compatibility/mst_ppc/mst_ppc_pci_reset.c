@@ -3,6 +3,7 @@
 #include <linux/init.h>
 #include <linux/kmod.h>
 #include <linux/delay.h>
+#include "nnt_ppc_device_list.h"
 #include "nnt_ppc_driver_defs.h"
 #include "nnt_defs.h"
 
@@ -268,11 +269,6 @@ void init_members(void)
     memset(&nnt_ppc_reset, 0, sizeof(struct nnt_ppc_reset_info));
 }
 
-// we keep this empty array since field .id_table of nnt_ppc_driver
-// struct must be non-NULL for .probe function to be called.
-static struct pci_device_id pciconf_devices[] = {
-        { 0, }
-};
 
 static struct pci_driver nnt_ppc_driver = {
     .name       = "nnt_ppc_driver",

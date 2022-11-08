@@ -11,6 +11,8 @@ int create_nnt_devices(dev_t device_number, int is_alloc_chrdev_region,
 void destroy_nnt_devices(int is_alloc_chrdev_region);
 void destroy_nnt_devices_bc(void);
 int destroy_nnt_device_bc(struct nnt_device* nnt_device);
+int is_pciconf_device(unsigned short pci_device_id);
+int is_pcicr_device(unsigned short pci_device_id);
 int get_amount_of_nvidia_devices(void);
 int set_private_data(struct file* file);
 void set_private_data_open(struct file* file);
