@@ -7,7 +7,6 @@
 #include <linux/cdev.h>
 #include "nnt_ioctl_defs.h"
 
-#define NNT_NVIDIA_PCI_VENDOR       0x15b3
 #define NNT_DEVICE_ID_OFFSET        0xf0014
 #define NNT_WO_REG_ADDR_DATA        0xbadacce5
 #define NNT_NAME_SIZE               75
@@ -26,6 +25,42 @@
 
 #define MST_BC_BUFFER_SIZE          256
 #define MST_BC_MAX_MINOR            256
+
+//NVIDIA Vendor ID.
+#define NNT_NVIDIA_PCI_VENDOR       0x15b3
+
+// Livefish Device ID range.
+#define CONNECTX3_LIVEFISH_ID       502
+
+// PCI Device IDs.
+#define CONNECTX3_PCI_ID            4099
+#define CONNECTX3PRO_PCI_ID         4103
+#define CONNECTIB_PCI_ID            4113
+#define CONNECTX4_PCI_ID            4115
+#define CONNECTX4LX_PCI_ID          4117
+#define CONNECTX5_PCI_ID            4119
+#define CONNECTX5EX_PCI_ID          4121
+#define CONNECTX6_PCI_ID            4123
+#define CONNECTX6DX_PCI_ID          4125
+#define CONNECTX6LX_PCI_ID          4127
+#define CONNECTX7_PCI_ID            4129
+#define CONNECTX8_PCI_ID            4131
+#define SCHRODINGER_PCI_ID          6518
+#define FREYSA_PCI_ID               6521
+#define BLUEFIELD_PCI_ID            41682
+#define BLUEFIELD2_PCI_ID           41686
+#define BLUEFIELD3_PCI_ID           41692
+#define BLUEFIELD4_PCI_ID           41694
+#define SWITCHIB_PCI_ID             52000
+#define SWITCHIB2_PCI_ID            53000
+#define QUANTUM_PCI_ID              54000
+#define QUANTUM2_PCI_ID             54002
+#define QUANTUM3_PCI_ID             54004
+#define SPECTRUM_PCI_ID             52100
+#define SPECTRUM2_PCI_ID            53100
+#define SPECTRUM3_PCI_ID            53104
+#define SPECTRUM4_PCI_ID            53120
+#define GB100_PCI_ID                10496
 
 
 enum nnt_device_type_flag {
