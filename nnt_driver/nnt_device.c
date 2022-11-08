@@ -132,7 +132,7 @@ int create_file_name_mstflint(struct pci_dev* pci_device, struct nnt_device* nnt
 int create_file_name_mft(struct pci_dev* pci_device, struct nnt_device* nnt_dev,
                          enum nnt_device_type device_type)
 {
-    sprintf(nnt_dev->device_name, "mst/mt%d_%s%1.1x",
+    sprintf(nnt_dev->device_name, "mst/mt%d_%s0.%x",
             pci_device->device,
             (device_type == NNT_PCICONF) ? MFT_PCICONF_DEVICE_NAME : MFT_MEMORY_DEVICE_NAME,
             PCI_FUNC(pci_device->devfn));
