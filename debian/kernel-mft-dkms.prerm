@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+# Get the package version
+package=kernel-mft-dkms
+version=`dpkg-query -W -f='${Version}' "$package" \
+    | sed -e 's/[+-].*//'`
+
+dkms remove -m "$package" -v "$version" --all || true
+
+rm -f /usr/lib/pkgconfig/${package}.pc
+rm -rf /etc/mft/mlxfwreset
+
+#DEBHELPER#
+
+exit 0

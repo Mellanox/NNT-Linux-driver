@@ -1,0 +1,14 @@
+PACKAGE_NAME=@PACKAGE_NAME@
+PACKAGE_VERSION=@PACKAGE_VERSION@
+MAKE[0]="make all KPVER=$kernelver"
+CLEAN="make -C src/ clean"
+BUILT_MODULE_NAME[0]=mst_pci
+BUILT_MODULE_NAME[1]=mst_pciconf
+BUILT_MODULE_LOCATION[0]=./mst_backward_compatibility/mst_pci
+BUILT_MODULE_LOCATION[1]=./mst_backward_compatibility/mst_pciconf
+DEST_MODULE_LOCATION[0]="/updates"
+DEST_MODULE_LOCATION[1]="/updates"
+#REMAKE_INITRD=yes
+
+# Rebuild and autoinstall automatically when dkms_autoinstaller runs for a new kernel
+AUTOINSTALL="yes"

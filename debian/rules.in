@@ -1,0 +1,101 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+#
+# This version is for a hypothetical package that can build a kernel modules
+# architecture-dependant package via make-kpkg, as well as an
+# architecture-independent module source package, and other packages
+# either dep/indep for things like common files or userspace components
+# needed for the kernel modules.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+WITH_DKMS ?= 1
+WITH_MOD_SIGN ?= 0
+
+pname:=kernel-mft-dkms
+ifeq ($(WITH_DKMS),1)
+pdkms:=$(pname)
+else
+pdkms:=kernel-mft-modules
+endif
+
+pversion := $(shell dpkg-parsechangelog | sed -n 's/^Version: *\([^-]\+\)-.\+/\1/p')
+prel := $(shell dpkg-parsechangelog | sed -n 's/^Version: *\([^-]\+\)-\(.\+\)/\2/p')
+
+export INSTALL_MOD_DIR:=updates
+export INSTALL_MOD_PATH:=$(CURDIR)/debian/$(pdkms)
+export MLXFWRESET_KO_PATH:=/etc/mft/mlxfwreset
+
+DIST_NAME := $(shell lsb_release -si)
+DIST_RELEASE := $(DIST_NAME)/$(shell lsb_release -sc)
+
+cpu_arch ?= $(shell uname -m)
+kernelver ?= $(shell uname -r)
+kernelver1 = $(shell echo $(kernelver) | sed -e 's/_/-/g')
+kernel_source_dir ?= "/lib/modules/$(kernelver)/build"
+
+%:
+ifeq ($(WITH_DKMS),1)
+	dh $@ --with dkms
+else
+	dh $@
+endif
+
+override_dh_auto_clean:
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+ifneq ($(WITH_DKMS),1)
+	@echo Building for $(kernelver)
+	make -j`grep ^processor /proc/cpuinfo | wc -l` all KPVER=$(kernelver) KSRC=$(kernel_source_dir)
+endif
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+ifneq ($(WITH_DKMS),1)
+	dh_installdirs -p$(pdkms)  lib/modules/$(kernelver)/$(INSTALL_MOD_DIR)
+	cp mst_backward_compatibility/mst_pci/mst_pci.ko		debian/$(pdkms)/lib/modules/$(kernelver)/$(INSTALL_MOD_DIR)
+	cp mst_backward_compatibility/mst_pciconf/mst_pciconf.ko	debian/$(pdkms)/lib/modules/$(kernelver)/$(INSTALL_MOD_DIR)
+ifneq "$(findstring ppc64, $(cpu_arch))" ""
+	mkdir -p debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
+	cp ./mst_backward_compatibility/mst_ppc/mst_ppc_pci_reset.ko debian/$(pdkms)/$(MLXFWRESET_KO_PATH)/$(kernelver)
+endif
+ifeq ($(WITH_MOD_SIGN),1)
+	tools/sign-modules $(INSTALL_MOD_PATH)/lib/modules/ $(kernel_source_dir)
+endif
+else
+	# For dkms
+	mkdir -p debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_backward_compatibility/mst_pci/
+	mkdir -p debian/$(pdkms)/usr/src/$(pname)-$(pversion)/mst_backward_compatibility/mst_pciconf/
+	mkdir -p debian/$(pdkms)/usr/src/$(pname)-$(pversion)/nnt_driver/
+	dh_installdirs -p$(pdkms)  usr/src/$(pname)-$(pversion)
+	cp -a COPYING 													debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -a dkms.conf    												debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp common.postinst 												debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp Makefile														debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -r mst_backward_compatibility 	 							debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -r nnt_driver 	      										debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+	cp -r scripts           										debian/$(pdkms)/usr/src/$(pname)-$(pversion)
+endif
+
+override_dh_installinit:
+
+
+ifneq ($(WITH_DKMS),1)
+override_dh_gencontrol:
+	dh_gencontrol -- -v$(pversion)-$(prel).kver.$(kernelver1)
+override_dh_strip:
+	dh_strip
+	find debian -name '*.ko' | xargs strip -g
+ifeq ($(WITH_MOD_SIGN),1)
+	tools/sign-modules $(INSTALL_MOD_PATH)/lib/modules/ $(kernel_source_dir)
+endif
+endif
