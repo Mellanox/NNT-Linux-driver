@@ -214,7 +214,6 @@ int check_pci_id_range(unsigned short pci_device_id, unsigned short id_range_sta
     return (pci_device_id >= id_range_start) && (pci_device_id <= (id_range_start + 100));
 }
 
-
 int is_connectx(unsigned short pci_device_id)
 {
     return check_pci_id_range(pci_device_id, CONNECTX3_PCI_ID);
