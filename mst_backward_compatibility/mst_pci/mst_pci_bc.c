@@ -170,8 +170,6 @@ static int mst_pci_mmap(struct file *file, struct vm_area_struct *vma)
             goto ReturnOnFinished;
     }
 
-    error = mutex_lock_nnt(file);
-
 	off = vma->vm_pgoff << PAGE_SHIFT;
 	vsize = vma->vm_end - vma->vm_start;
 
@@ -192,7 +190,6 @@ static int mst_pci_mmap(struct file *file, struct vm_area_struct *vma)
 			                   vsize, vma->vm_page_prot);
 
 ReturnOnFinished:
-    mutex_unlock_nnt(file);
 	return error;
 }
 

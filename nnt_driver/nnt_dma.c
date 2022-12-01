@@ -164,7 +164,7 @@ ReturnOnFinished:
 int release_dma_pages(struct nnt_page_info* page_info, struct nnt_device* nnt_device)
 {
     int page_counter;
-    
+
     if (nnt_device->dma_page.page_list == NULL) {
         return 0;
     }
