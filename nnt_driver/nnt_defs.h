@@ -17,13 +17,13 @@ extern struct driver_info nnt_driver_info;
 
 #define CHECK_PCI_READ_ERROR(error, address) \
         if (error) { \
-                nnt_error ("Failed to read from address: %x\n", address); \
+                printk(KERN_ERR "Failed to read from address: %x\n", address); \
                 goto ReturnOnFinished; \
         }
 
 #define CHECK_PCI_WRITE_ERROR(error, address, data) \
         if (error) { \
-                nnt_error ("Failed to write to address: %x, data: %x\n", address, data); \
+                printk(KERN_ERR "Failed to write to address: %x, data: %x\n", address, data); \
                 goto ReturnOnFinished; \
         }
 
@@ -31,13 +31,6 @@ extern struct driver_info nnt_driver_info;
     if (error) { \
             goto ReturnOnFinished; \
     }
-
-#define nnt_error(format, arg...) \
-    pr_err("%s function name:%s, line:%d | " format, NNT_DRIVER, __func__, __LINE__, ## arg)
-
-#define nnt_debug(format, arg...) \
-    pr_debug("%s function name:%s, line: %d | " format, NNT_DRIVER, __func__, __LINE__, ## arg)
-
 
 struct driver_info {
     dev_t device_number;
