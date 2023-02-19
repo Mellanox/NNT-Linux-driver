@@ -60,7 +60,7 @@ int wait_for_response(void)
 
                     /* Polling counter violation. */
                     if (polling_counter > NNT_MAXIMUM_POLLING_NUMBER) {
-                        nnt_error("%s Polling on device id failed: reached max value of polling failures for device: %s\n",
+                        printk(KERN_ERR "%s Polling on device id failed: reached max value of polling failures for device: %s\n",
                                    dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev));
                         error = -EINVAL;
                         goto ReturnOnFinished;
@@ -86,10 +86,10 @@ int set_reset_state(enum pcie_reset_state state)
 
             if (PCI_FUNC(pci_device->devfn) == 0) {
                     /* Set reset state for device devce. */
-                    nnt_debug("%s Send hot reset to the device: %s\n",dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev));
+                    printk(KERN_DEBUG "%s Send hot reset to the device: %s\n",dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev));
                     error = pci_set_pcie_reset_state(pci_device, state);
                     if (error) {
-                            nnt_error("%s Set reset state for device failed for device: %s - error: %d\n",
+                            printk(KERN_ERR "%s Set reset state for device failed for device: %s - error: %d\n",
                                       dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev), error);
                         goto ReturnOnFinished;
                     }
@@ -113,7 +113,7 @@ int save_pci_configucation_space(void)
             /* Initialize device before it's used by a driver. */
             error = pci_enable_device(pci_device);
             if (error) {
-                    nnt_error("%s Reset failed for device: %s - error: %d\n",
+                    printk(KERN_ERR "%s Reset failed for device: %s - error: %d\n",
                               dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev), error);
                 goto ReturnOnFinished;
             }
@@ -124,7 +124,7 @@ int save_pci_configucation_space(void)
             /* Save the PCI configuration space of a device before sending hot reset. */
             error = pci_save_state(pci_device);
             if (error) {
-                    nnt_error("%s Reset failed for device: %s - error: %d\n",
+                    printk(KERN_ERR "%s Reset failed for device: %s - error: %d\n",
                               dev_driver_string(&pci_device->dev), dev_name(&pci_device->dev), error);
                     goto ReturnOnFinished;
             }

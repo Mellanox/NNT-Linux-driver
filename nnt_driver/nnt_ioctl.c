@@ -113,7 +113,7 @@ int pci_connectx_wa(struct nnt_connectx_wa* connectx_wa, struct nnt_device* nnt_
 
     /* Is this slot exists ? */
     if (nnt_device->memory_device.connectx_wa_slot_p1) {
-            nnt_debug("Slot exits for file %s, slot:0x%x\n",
+            printk(KERN_DEBUG "Slot exits for file %s, slot:0x%x\n",
                       nnt_device->device_name, nnt_device->memory_device.connectx_wa_slot_p1);
             error = 0;
             goto ReturnOnFinished;
@@ -170,7 +170,7 @@ int vpd_read(struct nnt_vpd* vpd, struct nnt_device* nnt_device)
 	}
 
 	if (!is_bit_set) {
-            nnt_error("Failed to retrieve valid data\n");
+            printk(KERN_ERR "Failed to retrieve valid data\n");
             return -ETIMEDOUT;
     }
 
@@ -221,7 +221,7 @@ int vpd_write(struct nnt_vpd* vpd, struct nnt_device* nnt_device)
 	}
 
 	if (!is_bit_set) {
-        nnt_error("Failed to retrieve valid data\n");
+        printk(KERN_ERR "Failed to retrieve valid data\n");
 		return -ETIMEDOUT;
     }
 
