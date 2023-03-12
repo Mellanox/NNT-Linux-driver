@@ -345,6 +345,48 @@ ReturnOnFinished:
     return error;
 }
 
+int is_mellanox_vendor_type(struct nnt_device* current_nnt_device, unsigned int vsec_address)
+{
+    u_int8_t vendor_type = 0;
+    int error = 0;
+    /* Read the capability type field */
+    if ((error = pci_read_config_byte(current_nnt_device->pci_device, (vsec_address + PCI_TYPE_OFFSET), &vendor_type)))
+    {
+        printk(KERN_ERR "Reading VSEC type failed with error %d\n", error);
+        return 0;
+    }
+
+    if (vendor_type == MELLANOX_VSEC_TYPE)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+unsigned int get_mellanox_vsec_address(struct nnt_device* current_nnt_device)
+{
+    unsigned int vsec_address = 0;
+
+    /* Look for the Mellanox VSEC address. if Mellanox VSEC isn't supported the address should be 0 */
+    vsec_address = pci_find_capability(current_nnt_device->pci_device, VSEC_CAPABILITY_ADDRESS);
+    if (!vsec_address || is_mellanox_vendor_type(current_nnt_device, vsec_address))
+    {
+        return vsec_address;
+    }
+
+    /* if found a non-Mellanox type VSEC, iterate of the next available VSECs*/
+    while (
+      (vsec_address = pci_find_next_capability(current_nnt_device->pci_device, vsec_address, VSEC_CAPABILITY_ADDRESS)))
+    {
+        if (is_mellanox_vendor_type(current_nnt_device, vsec_address))
+        {
+            return vsec_address;
+        }
+    }
+    /* if Mellanox VSEC address was not found, return 0 */
+    return 0;
+}
+
 int create_devices(dev_t device_number, struct file_operations* fop, int is_alloc_chrdev_region)
 {
     struct nnt_device* current_nnt_device = NULL;
@@ -361,7 +403,7 @@ int create_devices(dev_t device_number, struct file_operations* fop, int is_allo
 
         /* Members initialization. */
         current_nnt_device->pciconf_device.vendor_specific_capability =
-          pci_find_capability(current_nnt_device->pci_device, VSEC_CAPABILITY_ADDRESS);
+          get_mellanox_vsec_address(current_nnt_device);
         current_nnt_device->vpd_capability_address =
           pci_find_capability(current_nnt_device->pci_device, PCI_CAP_ID_VPD);
 
