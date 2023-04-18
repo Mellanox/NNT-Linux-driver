@@ -229,14 +229,14 @@ int is_switch_ib(unsigned short pci_device_id)
     return pci_device_id == SWITCHIB_PCI_ID || pci_device_id == SWITCHIB2_PCI_ID;
 }
 
-int is_bw100(unsigned short pci_device_id)
+int is_bw00(unsigned short pci_device_id)
 {
-    return check_pci_id_range(pci_device_id, BW100_PCI_ID);
+    return check_pci_id_range(pci_device_id, BW00_PCI_ID);
 }
 
-int is_bw102(unsigned short pci_device_id)
+int is_bw02(unsigned short pci_device_id)
 {
-    return check_pci_id_range(pci_device_id, BW102_PCI_ID);
+    return check_pci_id_range(pci_device_id, BW02_PCI_ID);
 }
 
 int is_livefish_device(unsigned short pci_device_id)
@@ -255,8 +255,8 @@ int is_switch(unsigned short pci_device_id)
            is_quantum(pci_device_id) ||
            is_spectrum(pci_device_id) ||
            is_switch_ib(pci_device_id) ||
-           is_bw100(pci_device_id) ||
-           is_bw102(pci_device_id);
+           is_bw00(pci_device_id) ||
+           is_bw02(pci_device_id);
 }
 
 int is_toolspf(unsigned short pci_device_id)
