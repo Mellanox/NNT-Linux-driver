@@ -31,7 +31,7 @@ static struct pci_device_id pciconf_devices[] = {
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, SPECTRUM2_PCI_ID) },
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, SPECTRUM3_PCI_ID) },
         { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, SPECTRUM4_PCI_ID) },
-        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, BW100_PCI_ID) },
+        { PCI_DEVICE(NNT_NVIDIA_PCI_VENDOR, BW00_PCI_ID) },
         { 0, }
 };
 
