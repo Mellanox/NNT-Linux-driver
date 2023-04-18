@@ -259,9 +259,9 @@ int is_switch_ib(unsigned short pci_device_id)
 }
 
 
-int is_gb100(unsigned short pci_device_id)
+int is_bw100(unsigned short pci_device_id)
 {
-    return check_pci_id_range(pci_device_id, GB100_PCI_ID);
+    return check_pci_id_range(pci_device_id, BW100_PCI_ID);
 }
 
 
@@ -284,7 +284,7 @@ int is_switch(unsigned short pci_device_id)
            is_quantum(pci_device_id) ||
            is_spectrum(pci_device_id) ||
            is_switch_ib(pci_device_id) ||
-           is_gb100(pci_device_id);
+           is_bw100(pci_device_id);
 }
 
 
