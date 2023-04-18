@@ -165,6 +165,9 @@ int release_dma_pages(struct nnt_page_info* page_info, struct nnt_device* nnt_de
 {
     int page_counter;
 
+    if (nnt_device->dma_page.page_list == NULL) {
+        return 0;
+    }
 
     /* Deallocate the pages. */
     for (page_counter = 0;

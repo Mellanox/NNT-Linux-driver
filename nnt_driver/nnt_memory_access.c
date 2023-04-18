@@ -39,7 +39,7 @@ int init_memory(struct nnt_device* nnt_device)
                                    NNT_MEMORY_SIZE);
 
     if (nnt_device->memory_device.hardware_memory_address <= 0) {
-            nnt_error("could not map device memory\n");
+            printk(KERN_ERR "could not map device memory\n");
     }
 
     return 0;
