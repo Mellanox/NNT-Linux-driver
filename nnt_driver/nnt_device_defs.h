@@ -64,8 +64,8 @@
 #define SPECTRUM2_PCI_ID            53100
 #define SPECTRUM3_PCI_ID            53104
 #define SPECTRUM4_PCI_ID            53120
-#define BW100_PCI_ID                10496
-#define BW102_PCI_ID                10624
+#define BW00_PCI_ID                10496
+#define BW02_PCI_ID                10624
 
 
 enum nnt_device_type_flag {
