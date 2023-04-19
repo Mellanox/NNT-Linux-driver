@@ -37,38 +37,38 @@
 #define CONNECTX3_LIVEFISH_ID 502
 
 // PCI Device IDs.
-#define CONNECTX3_PCI_ID 4099
-#define CONNECTX3PRO_PCI_ID 4103
-#define CONNECTIB_PCI_ID 4113
-#define CONNECTX4_PCI_ID 4115
-#define CONNECTX4LX_PCI_ID 4117
-#define CONNECTX5_PCI_ID 4119
-#define CONNECTX5EX_PCI_ID 4121
-#define CONNECTX6_PCI_ID 4123
-#define CONNECTX6DX_PCI_ID 4125
-#define CONNECTX6LX_PCI_ID 4127
-#define CONNECTX7_PCI_ID 4129
-#define CONNECTX8_PCI_ID 4131
-#define SCHRODINGER_PCI_ID 6518
-#define FREYSA_PCI_ID 6521
-#define BLUEFIELD_PCI_ID 41682
-#define BLUEFIELD2_PCI_ID 41686
-#define BLUEFIELD3_PCI_ID 41692
-#define BLUEFIELD4_PCI_ID 41694
-#define SWITCHIB_PCI_ID 52000
-#define SWITCHIB2_PCI_ID 53000
-#define QUANTUM_PCI_ID 54000
-#define QUANTUM2_PCI_ID 54002
-#define QUANTUM3_PCI_ID 54004
-#define SPECTRUM_PCI_ID 52100
-#define SPECTRUM2_PCI_ID 53100
-#define SPECTRUM3_PCI_ID 53104
-#define SPECTRUM4_PCI_ID 53120
-#define GB100_PCI_ID 10496
-#define GB102_PCI_ID 10624
+#define CONNECTX3_PCI_ID            4099
+#define CONNECTX3PRO_PCI_ID         4103
+#define CONNECTIB_PCI_ID            4113
+#define CONNECTX4_PCI_ID            4115
+#define CONNECTX4LX_PCI_ID          4117
+#define CONNECTX5_PCI_ID            4119
+#define CONNECTX5EX_PCI_ID          4121
+#define CONNECTX6_PCI_ID            4123
+#define CONNECTX6DX_PCI_ID          4125
+#define CONNECTX6LX_PCI_ID          4127
+#define CONNECTX7_PCI_ID            4129
+#define CONNECTX8_PCI_ID            4131
+#define SCHRODINGER_PCI_ID          6518
+#define FREYSA_PCI_ID               6521
+#define BLUEFIELD_PCI_ID            41682
+#define BLUEFIELD2_PCI_ID           41686
+#define BLUEFIELD3_PCI_ID           41692
+#define BLUEFIELD4_PCI_ID           41694
+#define SWITCHIB_PCI_ID             52000
+#define SWITCHIB2_PCI_ID            53000
+#define QUANTUM_PCI_ID              54000
+#define QUANTUM2_PCI_ID             54002
+#define QUANTUM3_PCI_ID             54004
+#define SPECTRUM_PCI_ID             52100
+#define SPECTRUM2_PCI_ID            53100
+#define SPECTRUM3_PCI_ID            53104
+#define SPECTRUM4_PCI_ID            53120
+#define BW00_PCI_ID                10496
+#define BW02_PCI_ID                10624
 
-enum nnt_device_type_flag
-{
+
+enum nnt_device_type_flag {
     NNT_PCICONF_DEVICES = 0x01,
     NNT_PCI_DEVICES,
     NNT_ALL_DEVICES
